@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sample 4 Explanation</title>
+<style>
+  body      { font-family: 'Segoe UI', Arial, sans-serif; margin: 30px; background: #f9f9f9; color: #222; }
+  h2        { border-bottom: 2px solid #333; padding-bottom: 6px; }
+  .meta     { background: #fff; border: 1px solid #ddd; border-radius:6px; padding:12px 16px; margin-bottom:16px; }
+  .gt-box   { background: #fffbe6; border: 1px solid #e6c800; border-radius:6px; padding:10px 14px; margin-top:8px; }
+  .class-block { background:#fff; border:1px solid #ddd; border-radius:6px; padding:14px 18px; margin-bottom:20px; }
+  .class-title { font-size:16px; font-weight:bold; margin-bottom:8px; }
+  .tag      { background:#2563eb; color:#fff; border-radius:4px; padding:2px 8px; font-size:13px; }
+  .tag-l3   { background:#7c3aed; }
+  .legend   { font-size:12px; margin-bottom:10px; }
+  .text-block { line-height: 2.2; word-spacing: 4px; }
+  .transcript { font-style:italic; color:#444; font-size:13px; margin-top:6px; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<h2>Sample 4 — Word Attribution</h2>
+<div class="meta">
+  <b>Predictions</b> — L2: <code>Not Contacted – No Answer</code>
+  &nbsp;|&nbsp; L3: <code>none</code>
+  
+        <div class="gt-box">
+            <b>Ground Truth</b> — L2: <code>Not Contacted – No Answer</code> ✅
+            &nbsp;|&nbsp; L3: <code>none</code>
+        </div>
+  <div class="transcript">Customer: App abhi jis vyakti ko call kar rahe hain vo abhi uttar nahi de rahe. Kripya thodi der baad dobara call karein.</div>
+</div>
+
+    <div class="class-block">
+        <div class="class-title">L2 Disposition: <span class="tag">Not Contacted – No Answer</span></div>
+        <div class="legend">
+            <span style="background:rgb(60,255,60);padding:2px 8px;border-radius:3px;">Positive (supports class)</span>
+            &nbsp;
+            <span style="background:rgb(255,60,60);padding:2px 8px;border-radius:3px;">Negative (suppresses class)</span>
+        </div>
+        <div class="text-block"><span style="background:rgb(38,255,38);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +1.000">customer:</span> <span style="background:rgb(196,255,196);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +0.271">app</span> <span style="background:rgb(160,255,160);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +0.437">abhi</span> <span style="background:rgb(213,255,213);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +0.193">jis</span> <span style="background:rgb(255,235,235);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: -0.092">vyakti</span> <span style="background:rgb(240,255,240);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +0.068">ko</span> <span style="background:rgb(204,255,204);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +0.235">call</span> <span style="background:rgb(205,255,205);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +0.230">kar</span> <span style="background:rgb(250,255,250);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +0.023">rahe</span> <span style="background:rgb(255,210,210);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: -0.205">hain</span> <span style="background:rgb(228,255,228);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +0.121">vo</span> <span style="background:rgb(234,255,234);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +0.094">abhi</span> <span style="background:rgb(221,255,221);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +0.154">uttar</span> <span style="background:rgb(255,222,222);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: -0.151">nahi</span> <span style="background:rgb(255,254,254);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: -0.003">de</span> <span style="background:rgb(170,255,170);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +0.392">rahe.</span> <span style="background:rgb(255,246,246);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: -0.040">kripya</span> <span style="background:rgb(255,209,209);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: -0.211">thodi</span> <span style="background:rgb(255,231,231);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: -0.108">der</span> <span style="background:rgb(242,255,242);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +0.056">baad</span> <span style="background:rgb(255,234,234);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: -0.096">dobara</span> <span style="background:rgb(226,255,226);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +0.132">call</span> <span style="background:rgb(223,255,223);border-radius:3px;padding:1px 3px;margin:1px;display:inline-block;font-size:14px;" title="score: +0.147">karein.</span></div>
+    </div>
+
+</body>
+</html>

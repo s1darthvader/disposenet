@@ -1,0 +1,4 @@
+*.onnx.data
+*.safetensors
+*.pt
+outputs_v2_10class_base/

@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DisposeNet · Inference Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f8f9fa;
+    --bg3: #f1f3f5;
+    --bg4: #e9ecef;
+    --border: #e5e7eb;
+    --border2: #d1d5db;
+    --text: #0f172a;
+    --text2: #475569;
+    --text3: #64748b;
+    --accent: #6c63ff;
+    --accent2: #5a52d5;
+    --accent-dim: rgba(108, 99, 255, 0.15);
+    --green: #22c55e;
+    --green-dim: rgba(34, 197, 94, 0.12);
+    --amber: #f59e0b;
+    --amber-dim: rgba(245, 158, 11, 0.12);
+    --red: #ef4444;
+    --red-dim: rgba(239, 68, 68, 0.12);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59, 130, 246, 0.12);
+    --purple: #a855f7;
+    --teal: #14b8a6;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 13px; min-height: 100vh; line-height: 1.5; }
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  .sidebar { width: 220px; flex-shrink: 0; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+  .logo { padding: 22px 20px 16px; border-bottom: 1px solid var(--border); }
+  .logo-mark { font-family: var(--font-display); font-size: 18px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+  .logo-mark span { color: var(--accent2); }
+  .logo-sub { font-size: 10px; color: var(--text3); margin-top: 3px; letter-spacing: 0.06em; text-transform: uppercase; font-family: var(--font-mono); }
+
+  .nav-section { padding: 14px 12px 6px; }
+  .nav-label { font-size: 9px; font-weight: 600; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; padding: 0 8px; margin-bottom: 6px; }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: var(--radius-sm); cursor: pointer; color: var(--text2); font-size: 13px; font-weight: 400; transition: all 0.15s; margin-bottom: 2px; position: relative; }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: var(--accent-dim); color: var(--accent2); font-weight: 500; }
+  .nav-item .icon { font-size: 14px; width: 18px; text-align: center; }
+  .nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: 9px; font-family: var(--font-mono); padding: 1px 5px; border-radius: 20px; font-weight: 500; }
+
+  .sidebar-footer { margin-top: auto; padding: 14px 20px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text3); }
+
+  .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 28px; height: 54px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; position: sticky; top: 0; z-index: 100; }
+  .topbar-title { font-family: var(--font-display); font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+  .content { padding: 24px 28px; flex: 1; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+  .card-title { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; font-family: var(--font-mono); }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 12px; margin-bottom: 20px; }
+  .kpi { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; position: relative; overflow: hidden; }
+  .kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--kpi-color, var(--accent)); }
+  .kpi-label { font-size: 10px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .kpi-val { font-family: var(--font-display); font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: var(--text); }
+  .kpi-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border2); background: var(--bg3); color: var(--text2); transition: all 0.15s; font-family: var(--font-body); }
+  .btn:hover { border-color: var(--border2); background: var(--bg4); color: var(--text); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  .btn-sm { padding: 5px 10px; font-size: 11px; }
+
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; font-family: var(--font-mono); }
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-red { background: var(--red-dim); color: var(--red); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); }
+  .badge-blue { background: var(--blue-dim); color: var(--blue); }
+  .badge-purple { background: rgba(168,85,247,0.12); color: var(--purple); }
+  .badge-gray { background: var(--bg4); color: var(--text2); }
+  .badge-accent { background: var(--accent-dim); color: var(--accent2); }
+
+  .table-wrap { overflow: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--bg3); }
+  th { padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.07em; text-transform: uppercase; font-family: var(--font-mono); border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--bg3); cursor: pointer; }
+
+  .upload-zone { border: 2px dashed var(--border2); border-radius: var(--radius); padding: 48px 24px; text-align: center; background: var(--bg2); transition: all 0.2s; cursor: pointer; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: var(--accent-dim); }
+  .upload-zone.has-file { border-color: var(--green); border-style: solid; background: var(--green-dim); }
+  .upload-icon { font-size: 36px; margin-bottom: 12px; }
+  .upload-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .upload-sub { color: var(--text3); font-size: 12px; }
+
+  .conf-bar { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; }
+  .conf-track { width: 52px; height: 4px; background: var(--bg4); border-radius: 4px; overflow: hidden; flex-shrink: 0; }
+  .conf-fill { height: 100%; border-radius: 4px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  .hbar { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+  .hbar-label { font-size: 12px; color: var(--text2); width: 180px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hbar-track { flex: 1; height: 6px; background: var(--bg4); border-radius: 4px; overflow: hidden; }
+  .hbar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+  .hbar-val { font-size: 11px; color: var(--text3); font-family: var(--font-mono); width: 38px; text-align: right; flex-shrink: 0; }
+
+  .pcr-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .pcr-table th { padding: 6px 10px; text-align: right; font-size: 10px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; border-bottom: 1px solid var(--border); }
+  .pcr-table th:first-child { text-align: left; }
+  .pcr-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: right; font-family: var(--font-mono); }
+  .pcr-table td:first-child { text-align: left; font-family: var(--font-body); color: var(--text); font-weight: 500; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pcr-table tbody tr:hover td { background: var(--bg3); }
+
+  .detail-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: none; align-items: flex-start; justify-content: flex-end; }
+  .detail-overlay.open { display: flex; }
+  .detail-panel { width: 600px; height: 100vh; background: var(--bg2); border-left: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; animation: slideIn 0.2s ease; }
+  @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .detail-head { padding: 20px 22px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; }
+  .detail-body { padding: 22px; flex: 1; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+  .tab { padding: 8px 14px; cursor: pointer; font-size: 12px; color: var(--text3); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; font-weight: 500; }
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .exp-text { line-height: 2.4; word-spacing: 3px; font-size: 13px; }
+  .exp-token { display: inline-block; border-radius: 3px; padding: 1px 4px; margin: 2px 1px; cursor: default; font-family: var(--font-body); transition: filter 0.1s; }
+  .exp-token:hover { filter: brightness(1.15); }
+
+  .donut-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+  .donut-center { position: absolute; text-align: center; pointer-events: none; }
+  .donut-center .big { font-family: var(--font-display); font-size: 22px; font-weight: 700; line-height: 1; }
+  .donut-center .small { font-size: 10px; color: var(--text3); margin-top: 3px; font-family: var(--font-mono); }
+
+  .hist-bars { display: flex; align-items: flex-end; gap: 3px; height: 70px; }
+  .hist-bar { flex: 1; border-radius: 3px 3px 0 0; cursor: default; position: relative; min-width: 10px; transition: opacity 0.15s; }
+  .hist-bar:hover { opacity: 0.75; }
+  .hist-tip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--bg4); border: 1px solid var(--border2); color: var(--text); font-size: 10px; padding: 3px 7px; border-radius: 4px; white-space: nowrap; font-family: var(--font-mono); z-index: 10; }
+  .hist-bar:hover .hist-tip { display: block; }
+
+  .spinner { width: 20px; height: 20px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-overlay { position: fixed; inset: 0; background: rgba(14,15,17,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 300; gap: 16px; }
+  .loading-text { font-family: var(--font-mono); color: var(--text2); font-size: 13px; }
+
+  .code-block { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; font-family: var(--font-mono); font-size: 12px; color: var(--text2); line-height: 1.8; overflow-x: auto; }
+
+  .seg-bar { display: flex; height: 24px; border-radius: 6px; overflow: hidden; }
+  .seg-bar div { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; transition: flex 0.5s; }
+
+  .stat-pill { display: inline-flex; align-items: center; gap: 5px; background: var(--bg3); border-radius: 20px; padding: 3px 9px; font-size: 11px; color: var(--text2); font-family: var(--font-mono); }
+  .stat-pill .pv { font-weight: 700; color: var(--text); }
+
+  .legend-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+  .legend-sq { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  .dist-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; gap: 14px; color: var(--text3); text-align: center; }
+  .dist-empty .dist-empty-icon { font-size: 40px; opacity: 0.4; }
+  .dist-empty p { font-size: 13px; max-width: 340px; line-height: 1.7; }
+
+  .f1-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 12px; font-family: var(--font-mono); font-size: 12px; }
+  .f1-badge .label { color: var(--text3); font-size: 10px; }
+  .f1-badge .val { font-size: 15px; font-weight: 600; color: var(--green); }
+
+  .mono { font-family: var(--font-mono); }
+  .text-sm { font-size: 11px; }
+  .text-xs { font-size: 10px; }
+  .gap-8 { display: flex; gap: 8px; align-items: center; }
+  .mt-12 { margin-top: 12px; }
+  .mt-16 { margin-top: 16px; }
+  .mt-20 { margin-top: 20px; }
+  .mb-12 { margin-bottom: 12px; }
+  .mb-16 { margin-bottom: 16px; }
+
+  select, input[type=text] { background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 6px 10px; color: var(--text); font-size: 12px; font-family: var(--font-body); cursor: pointer; outline: none; }
+  select:focus, input[type=text]:focus { border-color: var(--accent); }
+  input[type=file] { display: none; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading" style="display:none">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Running inference…</div>
+</div>
+
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetail(event)">
+  <div class="detail-panel" id="detail-panel">
+    <div class="detail-head">
+      <div>
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700" id="dp-id">—</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px" id="dp-meta">—</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="dp-l1-badge"></span>
+        <button class="btn btn-sm" onclick="closeDetailPanel()">✕ Close</button>
+      </div>
+    </div>
+    <div class="detail-body">
+      <div class="tabs">
+        <div class="tab active" onclick="switchDetailTab(0)">Predictions</div>
+        <div class="tab" onclick="switchDetailTab(1)">Probabilities</div>
+        <div class="tab" id="exp-tab" onclick="switchDetailTab(2)" style="display:none">Explanation</div>
+      </div>
+      <div class="tab-panel active" id="dp-preds-panel"></div>
+      <div class="tab-panel" id="dp-probs-panel"></div>
+      <div class="tab-panel" id="dp-exp-panel"></div>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <nav class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">Dispose<span>Net</span></div>
+      <div class="logo-sub">Inference Dashboard</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Inference</div>
+      <div class="nav-item active" id="nav-upload" onclick="goScreen('upload')"><span class="icon">⬆</span> Upload</div>
+      <div class="nav-item" id="nav-overview" onclick="goScreen('overview')"><span class="icon">◈</span> Overview</div>
+      <div class="nav-item" id="nav-results" onclick="goScreen('results')"><span class="icon">◧</span> Results <span class="nav-badge" id="nav-results-count" style="display:none">0</span></div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Metrics</div>
+      <div class="nav-item" id="nav-f1" onclick="goScreen('f1')"><span class="icon">◎</span> F1 Scores</div>
+      <div class="nav-item" id="nav-perclass" onclick="goScreen('perclass')"><span class="icon">≡</span> Per-Class</div>
+      <div class="nav-item" id="nav-confusion" onclick="goScreen('confusion')"><span class="icon">⊞</span> Confusion</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Distribution</div>
+      <div class="nav-item" id="nav-dist" onclick="goScreen('dist')"><span class="icon">◉</span> Data Profile</div>
+      <div class="nav-item" id="nav-explain" onclick="goScreen('explain')" style="display:none"><span class="icon">✦</span> Explanations <span class="nav-badge" id="nav-exp-count">0</span></div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div style="color:var(--text3);font-size:10px;font-family:var(--font-mono)">ai4bharat/indic-bert</div>
+      <div id="sidebar-status" style="margin-top:4px;font-size:10px;color:var(--text3)">No data loaded</div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Upload Batch</div>
+      <div class="topbar-actions">
+        <span id="topbar-meta" style="font-size:11px;color:var(--text3);font-family:var(--font-mono)"></span>
+        <button class="btn btn-sm" onclick="goScreen('upload')">+ New Batch</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ══════ UPLOAD ══════ -->
+      <div class="screen active" id="screen-upload">
+        <div style="max-width:620px">
+          <div style="margin-bottom:22px">
+            <div style="font-family:var(--font-display);font-size:22px;font-weight:700;letter-spacing:-0.02em;margin-bottom:6px">Run Inference</div>
+            <div style="color:var(--text3);font-size:13px">Upload a JSON batch and classify with DisposeNet. Choose between fast inference or inference with Integrated Gradients explanations.</div>
+          </div>
+
+          <div class="upload-zone" id="upload-zone"
+            ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)"
+            onclick="document.getElementById('file-input').click()">
+            <div class="upload-icon">📂</div>
+            <div class="upload-title" id="upload-title">Drop JSON file here</div>
+            <div class="upload-sub" id="upload-sub">Array of transcript objects · click to browse</div>
+          </div>
+          <input type="file" id="file-input" accept=".json" onchange="onFileSelect(event)">
+
+          <div class="card mt-16" id="file-status-card" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-weight:600;font-size:13px" id="file-name">—</div>
+                <div style="color:var(--text3);font-size:11px;margin-top:3px" id="file-info">—</div>
+              </div>
+              <span id="file-badge"></span>
+            </div>
+          </div>
+
+          <div class="card mt-16">
+            <div class="card-title">Endpoint</div>
+            <div style="display:flex;gap:10px">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:12px;flex:1;border:1px solid var(--border);border-radius:var(--radius-sm)">
+                <input type="radio" name="mode" value="fast" checked style="accent-color:var(--accent)">
+                <div>
+                  <div style="font-weight:600;font-size:12px">Fast Inference</div>
+                  <div style="color:var(--text3);font-size:11px;margin-top:2px">POST /api/predict · all samples · no gradients</div>
+                </div>
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:12px;flex:1;border:1px solid var(--border);border-radius:var(--radius-sm)">
+                <input type="radio" name="mode" value="explain" style="accent-color:var(--accent)">
+                <div>
+                  <div style="font-weight:600;font-size:12px">Inference + Explain</div>
+                  <div style="color:var(--text3);font-size:11px;margin-top:2px">POST /api/predict/explain · max 20 samples · IG attrs</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+            <button class="btn btn-primary" id="run-btn" onclick="runInference()" disabled><span>▶</span> Run Inference</button>
+            <span id="submit-status" style="font-size:11px;color:var(--text3);font-family:var(--font-mono)"></span>
+          </div>
+
+          <div class="card mt-20">
+            <div class="card-title">Expected Schema</div>
+            <div class="code-block">[{<br>  "id":         "call_001",<br>  "language":   "Hindi",<br>  "dialect":    "Delhi Hindi",<br>  "call_stage": "Mid Bucket",<br>  "transcript": "Agent: ...",<br><br>  <span style="color:var(--text3)">// optional — enables metrics:</span><br>  "L1": "Contacted",<br>  "L2": "Promise to Pay",<br>  "L3": "Broken Promise|Escalation"<br>}]</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════ OVERVIEW ══════ -->
+      <div class="screen" id="screen-overview">
+        <div class="kpi-grid" id="kpi-grid"></div>
+        <div class="grid-2 mb-16">
+          <div class="card"><div class="card-title">L1 Contact Split</div><div id="l1-donut-area" style="display:flex;align-items:center;gap:20px"></div></div>
+          <div class="card"><div class="card-title">Confidence Distribution</div><div id="conf-hist-area"></div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card"><div class="card-title">Top L2 Dispositions</div><div id="l2-top-bars"></div></div>
+          <div class="card"><div class="card-title">Language Mix</div><div id="lang-seg"></div><div id="lang-bars" class="mt-12"></div></div>
+        </div>
+      </div>
+
+      <!-- ══════ RESULTS ══════ -->
+      <div class="screen" id="screen-results">
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+          <select id="filt-l1" onchange="filterResults()"><option value="">All L1</option><option value="Contacted">Contacted</option><option value="Not Contacted">Not Contacted</option></select>
+          <select id="filt-l2" onchange="filterResults()"></select>
+          <select id="filt-lang" onchange="filterResults()"></select>
+          <select id="filt-conf" onchange="filterResults()"><option value="">All Confidence</option><option value="low">Low (&lt;0.70)</option><option value="high">High (≥0.70)</option></select>
+          <select id="filt-correct" onchange="filterResults()"><option value="">All</option><option value="correct">Correct L2</option><option value="wrong">Wrong L2</option></select>
+          <span style="margin-left:auto;font-size:11px;color:var(--text3);font-family:var(--font-mono)" id="result-count-label">0 results</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>L1</th><th>L2 Pred</th><th id="th-gt" style="display:none">L2 GT</th><th id="th-correct" style="display:none">✓</th><th>L3 Flags</th><th>Language</th><th>Dialect</th><th>Conf L1</th><th>Conf L2</th><th></th></tr></thead>
+            <tbody id="results-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ══════ F1 SCORES ══════ -->
+      <div class="screen" id="screen-f1">
+        <div id="f1-no-labels" style="display:none" class="card"><div style="padding:2rem;text-align:center;color:var(--text3)">No ground truth labels in this batch.</div></div>
+        <div id="f1-content">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px" id="f1-badges"></div>
+          <div class="grid-3 mb-16">
+            <div class="card"><div class="card-title">L1 — Contact Type</div><div id="f1-l1-bars"></div></div>
+            <div class="card"><div class="card-title">L2 — Disposition</div><div id="f1-l2-bars"></div></div>
+            <div class="card"><div class="card-title">L3 — Flags (per-class)</div><div id="f1-l3-bars"></div></div>
+          </div>
+          <div class="grid-2">
+            <div class="card"><div class="card-title">Accuracy</div><div id="acc-bars"></div></div>
+            <div class="card"><div class="card-title">Weighted F1</div><div id="wf1-bars"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════ PER-CLASS ══════ -->
+      <div class="screen" id="screen-perclass">
+        <div id="pc-no-labels" style="display:none" class="card"><div style="padding:2rem;text-align:center;color:var(--text3)">No ground truth labels available.</div></div>
+        <div id="pc-content">
+          <div class="tabs">
+            <div class="tab active" onclick="switchPCTab('l1')">L1 — Contact Type</div>
+            <div class="tab" onclick="switchPCTab('l2')">L2 — Disposition</div>
+            <div class="tab" onclick="switchPCTab('l3')">L3 — Flags</div>
+          </div>
+          <div id="pc-l1" style="margin-top:16px"></div>
+          <div id="pc-l2" style="display:none;margin-top:16px"></div>
+          <div id="pc-l3" style="display:none;margin-top:16px"></div>
+        </div>
+      </div>
+
+      <!-- ══════ CONFUSION ══════ -->
+      <div class="screen" id="screen-confusion">
+        <div id="cm-no-labels" style="display:none" class="card"><div style="padding:2rem;text-align:center;color:var(--text3)">No ground truth labels available.</div></div>
+        <div id="cm-content">
+          <div class="tabs">
+            <div class="tab active" onclick="switchCMTab('l1')">L1 Confusion</div>
+            <div class="tab" onclick="switchCMTab('l2')">L2 Confusion</div>
+          </div>
+          <div id="cm-l1"></div>
+          <div id="cm-l2" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- ══════ DATA PROFILE ══════ -->
+      <div class="screen" id="screen-dist">
+        <div id="dist-empty-state" class="dist-empty" style="display:none">
+          <div class="dist-empty-icon">📊</div>
+          <p>No inference results loaded yet. Run inference on a batch first, then return here to explore the data profile.</p>
+          <button class="btn btn-primary" onclick="goScreen('upload')">⬆ Upload Batch</button>
+        </div>
+        <div id="dist-content" style="display:none">
+          <div class="tabs" id="dist-tabs">
+            <div class="tab active" onclick="switchDistTab('lang')">Language</div>
+            <div class="tab" onclick="switchDistTab('dialect')">Dialect</div>
+            <div class="tab" onclick="switchDistTab('stage')">Call Stage</div>
+            <div class="tab" onclick="switchDistTab('l3')">L3 Flags</div>
+            <div class="tab" onclick="switchDistTab('l2breakdown')">L2 Breakdown</div>
+            <div class="tab" onclick="switchDistTab('evaluation')" id="tab-evaluation" style="display:none">Evaluation</div>
+          </div>
+          <div id="dist-lang"></div>
+          <div id="dist-dialect" style="display:none"></div>
+          <div id="dist-stage" style="display:none"></div>
+          <div id="dist-l3" style="display:none"></div>
+          <div id="dist-l2breakdown" style="display:none"></div>
+          <div id="dist-evaluation" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- ══════ EXPLANATIONS ══════ -->
+      <div class="screen" id="screen-explain">
+        <div class="card mb-16">
+          <div class="card-title">Integrated Gradients Word Attribution</div>
+          <div style="font-size:12px;color:var(--text3)">
+            <span style="background:rgba(34,197,94,0.25);color:var(--green);padding:1px 6px;border-radius:3px;font-weight:600">green</span> = positive evidence &nbsp;
+            <span style="background:rgba(239,68,68,0.25);color:var(--red);padding:1px 6px;border-radius:3px;font-weight:600">red</span> = suppression
+          </div>
+        </div>
+        <div id="exp-list"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+let DATA = null, RESULTS = [], FILTERED = [], LABELED = false;
+const API_BASE = '';
+const PALETTE = ['#6c63ff','#22c55e','#f59e0b','#3b82f6','#a855f7','#14b8a6','#ef4444','#f97316','#ec4899','#84cc16','#06b6d4','#8b5cf6'];
+
+const ALL_SCREENS = ['upload','overview','results','f1','perclass','confusion','dist','explain'];
+const SCREEN_TITLES = {
+  'upload':'Upload Batch','overview':'Overview','results':'Results',
+  'f1':'F1 Scores','perclass':'Per-Class Report','confusion':'Confusion Matrix',
+  'dist':'Data Profile','explain':'Explanations'
+};
+
+function goScreen(name) {
+  ALL_SCREENS.forEach(s => {
+    document.getElementById('screen-'+s).classList.toggle('active', s===name);
+    const nav = document.getElementById('nav-'+s);
+    if(nav) nav.classList.toggle('active', s===name);
+  });
+  document.getElementById('topbar-title').textContent = SCREEN_TITLES[name] || name;
+  if(name === 'dist') renderDistScreen();
+}
+
+// ══════════════════════════════════════════════
+//  DATA PROFILE
+// ══════════════════════════════════════════════
+function renderDistScreen() {
+  if(!RESULTS.length) {
+    document.getElementById('dist-empty-state').style.display = 'flex';
+    document.getElementById('dist-content').style.display = 'none';
+    return;
+  }
+  document.getElementById('dist-empty-state').style.display = 'none';
+  document.getElementById('dist-content').style.display = 'block';
+  const hasEval = RESULTS.some(r=>r.evaluation);
+  document.getElementById('tab-evaluation').style.display = hasEval ? '' : 'none';
+  renderDistTab('lang');
+}
+
+function renderDistTab(name) {
+  const tabs = ['lang','dialect','stage','l3','l2breakdown','evaluation'];
+  tabs.forEach(t => {
+    const el = document.getElementById('dist-'+t);
+    if(el) el.style.display = t===name ? 'block' : 'none';
+  });
+  document.querySelectorAll('#dist-tabs .tab').forEach((t,i) => t.classList.toggle('active', tabs[i]===name));
+  const el = document.getElementById('dist-'+name);
+  if(!el || el.innerHTML.trim()) return;
+  const n = RESULTS.length;
+
+  if(name === 'lang') {
+    const data = aggBy('language');
+    const maxV = data[0]?data[0][1]:1;
+    const lc={},lt={},lconf={},lcn={};
+    RESULTS.forEach(r=>{const lang=r.language||'—';lt[lang]=(lt[lang]||0)+1;if(r.predictions.L1==='Contacted')lc[lang]=(lc[lang]||0)+1;lconf[lang]=(lconf[lang]||0)+r.confidence.L2;lcn[lang]=(lcn[lang]||0)+1;});
+    const segH=data.map((d,i)=>{const pct=(d[1]/n*100).toFixed(1);return `<div style="flex:${d[1]};background:${PALETTE[i%PALETTE.length]};color:#fff;font-size:10px;padding:0 4px;overflow:hidden;white-space:nowrap;">${parseFloat(pct)>6?d[0]:''}</div>`;}).join('');
+    el.innerHTML=`<div class="mt-16"><div class="grid-2 mb-16"><div class="card"><div class="card-title">Volume by Language</div><div class="seg-bar mb-12">${segH}</div>${hbars(data,maxV,PALETTE)}</div><div class="card"><div class="card-title">Contact Rate by Language</div>${data.map((d,i)=>{const rate=lc[d[0]]?Math.round(lc[d[0]]/lt[d[0]]*100):0;return `<div class="hbar"><div class="hbar-label" title="${d[0]}">${d[0]}</div><div class="hbar-track"><div class="hbar-fill" style="width:${rate}%;background:${PALETTE[i%PALETTE.length]}"></div></div><div class="hbar-val">${rate}%</div></div>`;}).join('')}</div></div><div class="card"><div class="card-title">Avg L2 Confidence by Language</div>${data.map((d,i)=>{if(!lcn[d[0]])return '';const avg=lconf[d[0]]/lcn[d[0]];const col=avg>=0.7?'var(--green)':'var(--amber)';return `<div class="hbar"><div class="hbar-label" title="${d[0]}">${d[0]}</div><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(avg*100)}%;background:${col}"></div></div><div class="hbar-val" style="color:${col}">${avg.toFixed(2)}</div></div>`;}).join('')}</div></div>`;
+  }
+  else if(name === 'dialect') {
+    const data = aggBy('dialect');
+    const maxV = data[0]?data[0][1]:1;
+    const dc={},dn={},dconf={},dcn={};
+    RESULTS.forEach(r=>{const d=r.dialect||'—';dn[d]=(dn[d]||0)+1;if(r.predictions.L1==='Contacted')dc[d]=(dc[d]||0)+1;dconf[d]=(dconf[d]||0)+r.confidence.L2;dcn[d]=(dcn[d]||0)+1;});
+    el.innerHTML=`<div class="mt-16"><div class="grid-2 mb-16"><div class="card"><div class="card-title">Volume by Dialect</div>${hbars(data,maxV,PALETTE)}</div><div class="card"><div class="card-title">Avg Confidence by Dialect</div>${data.map((d,i)=>{if(!dcn[d[0]])return '';const avg=dconf[d[0]]/dcn[d[0]];const col=avg>=0.7?'var(--green)':'var(--amber)';return `<div class="hbar"><div class="hbar-label" title="${d[0]}">${d[0]}</div><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(avg*100)}%;background:${col}"></div></div><div class="hbar-val" style="color:${col}">${avg.toFixed(2)}</div></div>`;}).join('')}</div></div><div class="card"><div class="card-title">Contact Rate by Dialect</div>${data.map((d,i)=>{const rate=dc[d[0]]?Math.round(dc[d[0]]/dn[d[0]]*100):0;return `<div class="hbar"><div class="hbar-label" title="${d[0]}">${d[0]}</div><div class="hbar-track"><div class="hbar-fill" style="width:${rate}%;background:${PALETTE[i%PALETTE.length]}"></div></div><div class="hbar-val">${rate}%</div></div>`;}).join('')}</div></div>`;
+  }
+  else if(name === 'stage') {
+    const data = aggBy('call_stage');
+    if(!data.length||(data.length===1&&data[0][0]==='—')){el.innerHTML='<div class="card mt-16" style="text-align:center;padding:2rem;color:var(--text3)">No call_stage data in this batch</div>';return;}
+    const maxV = data[0][1];
+    const sc={},sn={};RESULTS.forEach(r=>{const s=r.call_stage||'—';sn[s]=(sn[s]||0)+1;if(r.predictions.L1==='Contacted')sc[s]=(sc[s]||0)+1;});
+    const l2BySt={};RESULTS.forEach(r=>{const s=r.call_stage||'—';if(!l2BySt[s])l2BySt[s]={};l2BySt[s][r.predictions.L2]=(l2BySt[s][r.predictions.L2]||0)+1;});
+    el.innerHTML=`<div class="mt-16"><div class="grid-2 mb-16"><div class="card"><div class="card-title">Volume by Call Stage</div>${hbars(data,maxV,PALETTE.slice(4))}</div><div class="card"><div class="card-title">Contact Rate by Call Stage</div>${data.map((d,i)=>{const rate=sc[d[0]]?Math.round(sc[d[0]]/sn[d[0]]*100):0;return `<div class="hbar"><div class="hbar-label" title="${d[0]}">${d[0]}</div><div class="hbar-track"><div class="hbar-fill" style="width:${rate}%;background:var(--accent)"></div></div><div class="hbar-val">${rate}%</div></div>`;}).join('')}</div></div><div class="card"><div class="card-title">Top L2 per Call Stage</div><div class="table-wrap"><table><thead><tr><th>Stage</th><th>Top L2</th><th>Count</th><th>2nd L2</th><th>Count</th></tr></thead><tbody>${data.map(d=>{const l2s=Object.entries(l2BySt[d[0]]||{}).sort((a,b)=>b[1]-a[1]);const top=l2s[0]||['—',0];const sec=l2s[1]||['—',0];return `<tr><td><span class="badge badge-gray">${d[0]}</span></td><td style="font-weight:500">${top[0]}</td><td style="font-family:var(--font-mono)">${top[1]}</td><td style="color:var(--text3)">${sec[0]}</td><td style="font-family:var(--font-mono);color:var(--text3)">${sec[1]||''}</td></tr>`;}).join('')}</tbody></table></div></div></div>`;
+  }
+  else if(name === 'l3') {
+    const flagCounts={};RESULTS.forEach(r=>r.predictions.L3.forEach(f=>{flagCounts[f]=(flagCounts[f]||0)+1;}));
+    const data=Object.entries(flagCounts).sort((a,b)=>b[1]-a[1]);
+    if(!data.length){el.innerHTML='<div class="card mt-16" style="text-align:center;padding:2rem;color:var(--text3)">No L3 flags predicted in this batch</div>';return;}
+    const maxV=data[0][1];
+    const comat={};data.forEach(([f])=>{comat[f]={};data.forEach(([g])=>comat[f][g]=0);});
+    RESULTS.forEach(r=>{const flags=r.predictions.L3;flags.forEach(f=>{flags.forEach(g=>{if(f!==g&&comat[f])comat[f][g]=(comat[f][g]||0)+1;});});});
+    const pairs=[];data.forEach(([f])=>{data.forEach(([g])=>{if(f<g&&comat[f][g]>0)pairs.push([f+'  ×  '+g,comat[f][g]]);});});
+    pairs.sort((a,b)=>b[1]-a[1]);
+    el.innerHTML=`<div class="mt-16"><div class="grid-2 mb-16"><div class="card"><div class="card-title">L3 Flag Frequency</div>${hbars(data,maxV,PALETTE.slice(4))}</div><div class="card"><div class="card-title">Flag Distribution (%)</div>${data.map((d,i)=>{const pct=(d[1]/n*100);return `<div class="hbar"><div class="hbar-label" style="width:200px" title="${d[0]}">${d[0]}</div><div class="hbar-track"><div class="hbar-fill" style="width:${Math.min(100,Math.round(pct*3))}%;background:${PALETTE[(i+4)%PALETTE.length]}"></div></div><div class="hbar-val">${pct.toFixed(1)}%</div></div>`;}).join('')}</div></div>${pairs.length?`<div class="card"><div class="card-title">Top Co-occurring Pairs</div>${hbars(pairs.slice(0,8),pairs[0][1],PALETTE.slice(7),'240px')}</div>`:''}</div>`;
+  }
+  else if(name === 'l2breakdown') {
+    const l2data=aggBy('l2');const l2conf={},l2cn={},l2l1={};
+    RESULTS.forEach(r=>{const l2=r.predictions.L2;l2conf[l2]=(l2conf[l2]||0)+r.confidence.L2;l2cn[l2]=(l2cn[l2]||0)+1;if(!l2l1[l2])l2l1[l2]={Contacted:0,Other:0};if(r.predictions.L1==='Contacted')l2l1[l2].Contacted++;else l2l1[l2].Other++;});
+    const maxV=l2data[0]?l2data[0][1]:1;
+    el.innerHTML=`<div class="mt-16"><div class="card mb-16"><div class="card-title">L2 Class Volume + Confidence + L1 Split</div><div class="table-wrap"><table><thead><tr><th>L2 Disposition</th><th>Count</th><th>Share</th><th>Avg Conf</th><th>Contacted</th><th>Not Contacted</th></tr></thead><tbody>${l2data.map((d,i)=>{const avg=l2conf[d[0]]/l2cn[d[0]];const confCol=avg>=0.7?'var(--green)':'var(--amber)';const l1=l2l1[d[0]]||{Contacted:0,Other:0};const barW=Math.round(d[1]/maxV*100);return `<tr><td style="font-weight:500;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d[0]}"><span style="width:8px;height:8px;background:${PALETTE[i%PALETTE.length]};border-radius:2px;display:inline-block;margin-right:6px;vertical-align:middle"></span>${d[0]}</td><td style="font-family:var(--font-mono)">${d[1]}</td><td><div class="hbar" style="padding:0"><div class="hbar-track" style="width:70px;flex:none"><div class="hbar-fill" style="width:${barW}%;background:${PALETTE[i%PALETTE.length]}"></div></div><span style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-left:6px">${(d[1]/n*100).toFixed(1)}%</span></div></td><td style="font-family:var(--font-mono);color:${confCol};font-weight:600">${avg.toFixed(3)}</td><td><span class="badge badge-blue">${l1.Contacted}</span></td><td><span class="badge badge-gray">${l1.Other}</span></td></tr>`;}).join('')}</tbody></table></div></div></div>`;
+  }
+  else if(name === 'evaluation') {
+    const evalCounts={};RESULTS.forEach(r=>{if(r.evaluation)evalCounts[r.evaluation]=(evalCounts[r.evaluation]||0)+1;});
+    const evalData=Object.entries(evalCounts).sort((a,b)=>b[1]-a[1]);
+    const maxV=evalData[0]?evalData[0][1]:1;
+    const evL2={};RESULTS.forEach(r=>{if(!r.evaluation)return;const e=r.evaluation;if(!evL2[e])evL2[e]={};evL2[e][r.predictions.L2]=(evL2[e][r.predictions.L2]||0)+1;});
+    const evalColors={'approved':'var(--green)','needs_improvement':'var(--amber)','rejected':'var(--red)','pending':'var(--text3)'};
+    el.innerHTML=`<div class="mt-16"><div class="grid-2 mb-16"><div class="card"><div class="card-title">Evaluation Status</div>${evalData.map((d,i)=>{const col=evalColors[d[0]]||PALETTE[i%PALETTE.length];return `<div class="hbar"><div class="hbar-label" title="${d[0]}">${d[0]}</div><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(d[1]/maxV*100)}%;background:${col}"></div></div><div class="hbar-val">${d[1]}</div></div>`;}).join('')}</div><div class="card"><div class="card-title">Distribution (%)</div>${evalData.map((d,i)=>{const col=evalColors[d[0]]||PALETTE[i%PALETTE.length];const pct=(d[1]/RESULTS.filter(r=>r.evaluation).length*100).toFixed(1);return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><div class="gap-8"><span style="width:10px;height:10px;background:${col};border-radius:2px;display:inline-block"></span><span style="font-size:12px">${d[0]}</span></div><div class="gap-8"><span style="font-family:var(--font-mono);font-weight:600">${d[1]}</span><span style="font-size:11px;color:var(--text3)">${pct}%</span></div></div>`;}).join('')}</div></div><div class="card"><div class="card-title">Top L2 per Evaluation Status</div><div class="table-wrap"><table><thead><tr><th>Status</th><th>#1 L2</th><th>Count</th><th>#2 L2</th><th>Count</th><th>#3 L2</th><th>Count</th></tr></thead><tbody>${evalData.map(d=>{const l2s=Object.entries(evL2[d[0]]||{}).sort((a,b)=>b[1]-a[1]);const col=evalColors[d[0]]||'var(--text3)';return `<tr><td><span class="badge" style="background:${col}20;color:${col}">${d[0]}</span></td>${[0,1,2].map(k=>{const item=l2s[k];return item?`<td style="font-size:12px">${item[0]}</td><td style="font-family:var(--font-mono)">${item[1]}</td>`:`<td style="color:var(--text3)">—</td><td></td>`;}).join('')}</tr>`;}).join('')}</tbody></table></div></div></div>`;
+  }
+}
+
+function switchDistTab(name) { renderDistTab(name); }
+
+// ══════════════════════════════════════════════
+//  INFERENCE
+// ══════════════════════════════════════════════
+let parsedFile = null;
+
+function onDragOver(e){e.preventDefault();document.getElementById('upload-zone').classList.add('drag-over');}
+function onDragLeave(e){document.getElementById('upload-zone').classList.remove('drag-over');}
+function onDrop(e){e.preventDefault();document.getElementById('upload-zone').classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)processFile(f);}
+function onFileSelect(e){const f=e.target.files[0];if(f)processFile(f);}
+
+function processFile(file){
+  if(!file.name.endsWith('.json')){setFileStatus(file.name,'Invalid (not .json)','badge-red',false);return;}
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!Array.isArray(data))throw new Error();
+      parsedFile=data;
+      const labeled=data.length>0&&data[0].L1!==undefined;
+      setFileStatus(file.name,`${data.length} transcripts · ${Math.round(file.size/1024)} KB · ${labeled?'labeled':'unlabeled'}`,'badge-green',true);
+      document.getElementById('upload-zone').classList.add('has-file');
+      document.getElementById('upload-title').textContent='✓ '+file.name;
+      document.getElementById('upload-sub').textContent=data.length+' transcripts ready';
+    }catch(e){parsedFile=null;setFileStatus(file.name,'Invalid JSON / schema error','badge-red',false);}
+  };
+  reader.readAsText(file);
+}
+
+function setFileStatus(name,info,badge,enable){
+  document.getElementById('file-status-card').style.display='block';
+  document.getElementById('file-name').textContent=name;
+  document.getElementById('file-info').textContent=info;
+  document.getElementById('file-badge').innerHTML=`<span class="badge ${badge}">${badge==='badge-green'?'Valid':'Error'}</span>`;
+  document.getElementById('run-btn').disabled=!enable;
+}
+
+async function runInference(){
+  if(!parsedFile)return;
+  const mode=document.querySelector('input[name=mode]:checked').value;
+  const endpoint=mode==='explain'?'/api/predict/explain':'/api/predict';
+  showLoading('Running inference'+(mode==='explain'?' + IG explanations':'')+'…');
+  try{
+    const res=await fetch(API_BASE+endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(parsedFile)});
+    if(!res.ok)throw new Error(await res.text());
+    DATA=await res.json();
+    processData();
+    goScreen('overview');
+  }catch(e){alert('Inference failed: '+e.message);}
+  finally{hideLoading();}
+}
+
+function showLoading(msg){document.getElementById('loading-text').textContent=msg;document.getElementById('loading').style.display='flex';}
+function hideLoading(){document.getElementById('loading').style.display='none';}
+
+function processData(){
+  RESULTS=DATA.results||[];
+  RESULTS.forEach(r=>{
+    r.confidence.L1=Math.max(0,r.confidence.L1);
+    r.confidence.L2=Math.max(0,r.confidence.L2);
+  });
+  LABELED=DATA.meta.labeled;
+  document.getElementById('sidebar-status').textContent=`${RESULTS.length} samples · ${DATA.meta.elapsed_seconds}s`;
+  document.getElementById('topbar-meta').textContent=`${RESULTS.length} samples · ${DATA.meta.elapsed_seconds}s`;
+  document.getElementById('nav-results-count').textContent=RESULTS.length;
+  document.getElementById('nav-results-count').style.display='inline';
+  const hasExp=DATA.meta.explained&&RESULTS.some(r=>r.explanations);
+  document.getElementById('nav-explain').style.display=hasExp?'flex':'none';
+  document.getElementById('nav-exp-count').textContent=DATA.meta.explained_count||0;
+  ['dist-lang','dist-dialect','dist-stage','dist-l3','dist-l2breakdown','dist-evaluation'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='';});
+  renderOverview();renderResults();renderF1();renderPerClass();renderConfusion();
+  if(hasExp)renderExplanations();
+}
+
+function confBar(c,color){const col=color||(c>=0.7?'var(--green)':'var(--amber)');return `<div class="conf-bar"><div class="conf-track"><div class="conf-fill" style="width:${Math.round(c*100)}%;background:${col}"></div></div><span style="color:${col}">${c.toFixed(2)}</span></div>`;}
+function l1Badge(v){return v==='Contacted'?`<span class="badge badge-blue">Contacted</span>`:`<span class="badge badge-gray">Not Contacted</span>`;}
+function aggBy(field){const c={};RESULTS.forEach(r=>{const v=r[field]||'—';c[v]=(c[v]||0)+1;});return Object.entries(c).sort((a,b)=>b[1]-a[1]);}
+function hbars(entries,max,colors,labelW){return entries.map((d,i)=>{const col=colors?colors[i%colors.length]:'var(--accent)';const pct=Math.round(d[1]/max*100);const lw=labelW||'180px';return `<div class="hbar"><div class="hbar-label" style="width:${lw}" title="${d[0]}">${d[0]}</div><div class="hbar-track"><div class="hbar-fill" style="width:${pct}%;background:${col}"></div></div><div class="hbar-val">${d[1]}</div></div>`;}).join('');}
+
+function renderOverview(){
+  const n=RESULTS.length;const contacted=RESULTS.filter(r=>r.predictions.L1==='Contacted').length;const lowConf=RESULTS.filter(r=>r.confidence.L2<0.7).length;const avgConf=RESULTS.reduce((s,r)=>s+r.confidence.L2,0)/n;const l2count=new Set(RESULTS.map(r=>r.predictions.L2)).size;
+  let accuracy='';if(LABELED&&DATA.metrics.accuracy){accuracy=`<div class="kpi" style="--kpi-color:var(--green)"><div class="kpi-label">L2 Accuracy</div><div class="kpi-val">${(DATA.metrics.accuracy.L2*100).toFixed(1)}%</div><div class="kpi-sub">correct predictions</div></div>`;}
+  document.getElementById('kpi-grid').innerHTML=`<div class="kpi" style="--kpi-color:var(--accent)"><div class="kpi-label">Total Samples</div><div class="kpi-val">${n.toLocaleString()}</div><div class="kpi-sub">${DATA.meta.elapsed_seconds}s processing</div></div><div class="kpi" style="--kpi-color:var(--blue)"><div class="kpi-label">Contacted</div><div class="kpi-val">${contacted}</div><div class="kpi-sub">${(contacted/n*100).toFixed(1)}% of batch</div></div><div class="kpi" style="--kpi-color:var(--teal)"><div class="kpi-label">Avg Conf (L2)</div><div class="kpi-val">${avgConf.toFixed(3)}</div><div class="kpi-sub">mean prediction conf.</div></div><div class="kpi" style="--kpi-color:var(--amber)"><div class="kpi-label">Low Confidence</div><div class="kpi-val" style="color:var(--amber)">${lowConf}</div><div class="kpi-sub">&lt; 0.70 threshold</div></div><div class="kpi" style="--kpi-color:var(--purple)"><div class="kpi-label">L2 Classes</div><div class="kpi-val">${l2count}</div><div class="kpi-sub">unique dispositions</div></div>${accuracy}`;
+  const nc=n-contacted;const donut=buildDonut([{label:'Contacted',val:contacted,color:'#3b82f6'},{label:'Not Contacted',val:nc,color:'#374151'}],64);
+  document.getElementById('l1-donut-area').innerHTML=`<div class="donut-wrap" style="width:128px;height:128px">${donut}<div class="donut-center"><div class="big">${(contacted/n*100).toFixed(0)}%</div><div class="small">contacted</div></div></div><div style="flex:1"><div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><div class="gap-8"><span style="width:10px;height:10px;background:#3b82f6;border-radius:2px;display:inline-block"></span><span style="font-size:12px">Contacted</span></div><span style="font-family:var(--font-mono);font-weight:600">${contacted}</span></div><div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0"><div class="gap-8"><span style="width:10px;height:10px;background:#374151;border-radius:2px;display:inline-block"></span><span style="font-size:12px">Not Contacted</span></div><span style="font-family:var(--font-mono);font-weight:600">${nc}</span></div></div>`;
+  const confs=RESULTS.map(r=>r.confidence.L2);const bins=Array(10).fill(0);confs.forEach(c=>{const b=Math.min(Math.floor((c-0.5)/0.05),9);if(b>=0)bins[b]++;});const maxB=Math.max(...bins);const labels=['0.50','0.55','0.60','0.65','0.70','0.75','0.80','0.85','0.90','0.95'];
+  document.getElementById('conf-hist-area').innerHTML=`<div class="hist-bars">${bins.map((b,i)=>{const h=maxB>0?Math.max(4,Math.round(b/maxB*64)):4;const col=(0.5+i*0.05)>=0.7?'var(--green)':'var(--amber)';return `<div class="hist-bar" style="height:${h}px;background:${col}"><span class="hist-tip">${labels[i]}–${(parseFloat(labels[i])+0.05).toFixed(2)}: ${b}</span></div>`;}).join('')}</div><div style="display:flex;gap:3px;margin-top:5px">${labels.map(l=>`<span style="flex:1;text-align:center;font-size:9px;color:var(--text3);font-family:var(--font-mono)">${l}</span>`).join('')}</div><div style="display:flex;gap:10px;margin-top:10px;font-size:11px;color:var(--text3)"><span>avg: <strong style="color:var(--text)">${avgConf.toFixed(3)}</strong></span><span>flagged: <strong style="color:var(--amber)">${lowConf}</strong></span></div>`;
+  const l2data=Object.entries(RESULTS.reduce((acc,r)=>{const l=r.predictions.L2;acc[l]=(acc[l]||0)+1;return acc;},{})).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  document.getElementById('l2-top-bars').innerHTML=hbars(l2data,l2data[0]?l2data[0][1]:1,PALETTE);
+  const langData=aggBy('language');const seg=langData.map((d,i)=>{const pct=(d[1]/n*100).toFixed(1);return `<div style="flex:${d[1]};background:${PALETTE[i%PALETTE.length]};color:#fff">${pct>6?d[0]:''}</div>`;}).join('');
+  document.getElementById('lang-seg').innerHTML=`<div class="seg-bar">${seg}</div>`;
+  document.getElementById('lang-bars').innerHTML=hbars(langData,langData[0]?langData[0][1]:1,PALETTE);
+}
+
+function renderResults(){
+  const l2s=[...new Set(RESULTS.map(r=>r.predictions.L2))].sort();const langs=[...new Set(RESULTS.map(r=>r.language).filter(Boolean))].sort();
+  document.getElementById('filt-l2').innerHTML='<option value="">All L2</option>'+l2s.map(v=>`<option value="${v}">${v}</option>`).join('');
+  document.getElementById('filt-lang').innerHTML='<option value="">All Language</option>'+langs.map(v=>`<option value="${v}">${v}</option>`).join('');
+  if(LABELED){document.getElementById('th-gt').style.display='';document.getElementById('th-correct').style.display='';}
+  filterResults();
+}
+
+function filterResults(){
+  const fl1=document.getElementById('filt-l1').value,fl2=document.getElementById('filt-l2').value,flang=document.getElementById('filt-lang').value,fconf=document.getElementById('filt-conf').value,fcor=document.getElementById('filt-correct').value;
+  FILTERED=RESULTS.filter(r=>{if(fl1&&r.predictions.L1!==fl1)return false;if(fl2&&r.predictions.L2!==fl2)return false;if(flang&&r.language!==flang)return false;if(fconf==='low'&&r.confidence.L2>=0.7)return false;if(fconf==='high'&&r.confidence.L2<0.7)return false;if(fcor==='correct'&&!(r.correct&&r.correct.L2))return false;if(fcor==='wrong'&&r.correct&&r.correct.L2)return false;return true;});
+  document.getElementById('result-count-label').textContent=`${FILTERED.length} of ${RESULTS.length}`;
+  document.getElementById('results-tbody').innerHTML=FILTERED.map((r,i)=>{const c=r.confidence;const gt=r.ground_truth;const cor=r.correct;const correctCell=LABELED?`<td>${cor?(cor.L2?'<span style="color:var(--green)">✓</span>':'<span style="color:var(--red)">✗</span>'):'—'}</td>`:'';const gtCell=LABELED?`<td style="font-size:12px;color:var(--text2)">${gt?gt.L2:'—'}</td>`:'';const l3html=r.predictions.L3.length?r.predictions.L3.map(t=>`<span class="badge badge-purple" style="font-size:10px">${t}</span>`).join(' '):'<span style="color:var(--text3)">—</span>';return `<tr onclick="openDetail(${i})"><td><span class="mono text-xs" style="color:var(--text2)">${r.id}</span></td><td>${l1Badge(r.predictions.L1)}</td><td style="font-size:12px;font-weight:500">${r.predictions.L2}</td>${gtCell}${correctCell}<td style="max-width:160px">${l3html}</td><td style="font-size:12px;color:var(--text2)">${r.language||'—'}</td><td style="font-size:11px;color:var(--text3)">${r.dialect||'—'}</td><td>${confBar(c.L1)}</td><td>${confBar(c.L2)}</td><td style="color:var(--text3)">→</td></tr>`;}).join('');
+}
+
+function openDetail(idx){
+  const r=FILTERED[idx];if(!r)return;
+  document.getElementById('dp-id').textContent=r.id;
+  document.getElementById('dp-meta').textContent=[r.language,r.dialect,r.call_stage].filter(Boolean).join(' · ');
+  document.getElementById('dp-l1-badge').innerHTML=l1Badge(r.predictions.L1);
+  const gt=r.ground_truth;const cor=r.correct;
+  let predsHtml=`<div style="display:flex;flex-direction:column;gap:10px"><div class="card" style="padding:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:11px;color:var(--text3)">L1</span><div class="gap-8">${l1Badge(r.predictions.L1)}<span style="font-family:var(--font-mono);font-size:11px;color:var(--text3)">${r.confidence.L1.toFixed(3)}</span></div></div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:11px;color:var(--text3)">L2</span><div class="gap-8"><span style="font-weight:600">${r.predictions.L2}</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--text3)">${r.confidence.L2.toFixed(3)}</span></div></div><div style="display:flex;justify-content:space-between;align-items:flex-start"><span style="font-size:11px;color:var(--text3);padding-top:3px">L3</span><div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;max-width:340px">${r.predictions.L3.length?r.predictions.L3.map(t=>`<span class="badge badge-purple">${t}</span>`).join(''):'<span style="color:var(--text3)">none</span>'}</div></div></div>`;
+  if(gt){predsHtml+=`<div class="card" style="padding:14px;border-color:${cor.L2?'var(--green)':'var(--red)'}"><div style="font-size:10px;font-family:var(--font-mono);color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Ground Truth</div><div style="margin-bottom:6px"><span style="color:var(--text3);font-size:11px">L1</span> <span style="margin-left:8px">${gt.L1}</span> ${cor.L1?'<span style="color:var(--green)">✓</span>':'<span style="color:var(--red)">✗</span>'}</div><div style="margin-bottom:6px"><span style="color:var(--text3);font-size:11px">L2</span> <span style="margin-left:8px;font-weight:600">${gt.L2}</span> ${cor.L2?'<span style="color:var(--green)">✓</span>':'<span style="color:var(--red)">✗</span>'}</div><div><span style="color:var(--text3);font-size:11px">L3</span> <span style="margin-left:8px">${gt.L3.join(', ')||'none'}</span></div></div>`;}
+  predsHtml+=`<div class="card" style="padding:14px"><div style="font-size:10px;font-family:var(--font-mono);color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Transcript</div><div style="font-size:12px;line-height:1.8;color:var(--text2);max-height:200px;overflow-y:auto">${r.transcript_preview}${r.transcript_preview.length>=5000?'…':''}</div></div></div>`;
+  document.getElementById('dp-preds-panel').innerHTML=predsHtml;
+  const l1classes=DATA.meta.l1_classes;const l2classes=DATA.meta.l2_classes;const maxL1=Math.max(...r.confidence.L1_all);const maxL2=Math.max(...r.confidence.L2_all);
+  let probsHtml=`<div style="margin-bottom:14px"><div class="card-title">L1 Probabilities</div>`;
+  r.confidence.L1_all.forEach((p,i)=>{const isTop=p===maxL1;probsHtml+=`<div class="hbar"><div class="hbar-label" style="${isTop?'color:var(--text);font-weight:600':''}">${l1classes[i]||i}</div><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(p*100)}%;background:${isTop?'var(--blue)':'var(--bg4)'}"></div></div><div class="hbar-val" style="${isTop?'color:var(--blue)':''}">${p.toFixed(3)}</div></div>`;});
+  probsHtml+=`</div><div><div class="card-title">L2 Probabilities (top 10)</div>`;
+  const l2sorted=r.confidence.L2_all.map((p,i)=>({p,i})).sort((a,b)=>b.p-a.p).slice(0,10);
+  l2sorted.forEach(({p,i})=>{const isTop=p===maxL2;probsHtml+=`<div class="hbar"><div class="hbar-label" style="${isTop?'color:var(--text);font-weight:600':''}">${l2classes[i]||i}</div><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(p*100)}%;background:${isTop?'var(--accent)':'var(--bg4)'}"></div></div><div class="hbar-val" style="${isTop?'color:var(--accent2)':''}">${p.toFixed(3)}</div></div>`;});
+  probsHtml+=`</div>`;
+  document.getElementById('dp-probs-panel').innerHTML=probsHtml;
+  const expTab=document.getElementById('exp-tab');
+  if(r.explanations){expTab.style.display='';let expHtml='';const exp=r.explanations;if(exp.L2){expHtml+=`<div style="margin-bottom:18px"><div class="card-title">L2: ${exp.L2.class}</div><div class="exp-text">${renderExpText(exp.L2.word_scores)}</div></div>`;}if(exp.L3&&Object.keys(exp.L3).length){Object.entries(exp.L3).forEach(([flag,d])=>{expHtml+=`<div style="margin-bottom:18px"><div class="card-title">L3 Flag: ${flag}</div><div class="exp-text">${renderExpText(d.word_scores)}</div></div>`;});}document.getElementById('dp-exp-panel').innerHTML=expHtml||'<div style="color:var(--text3)">No explanations.</div>';}else{expTab.style.display='none';}
+  switchDetailTab(0);
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function renderExpText(wordScores){
+  if(!wordScores||!wordScores.length)return '<span style="color:var(--text3)">—</span>';
+  return wordScores.map(([w,s])=>{const alpha=Math.min(1,Math.abs(s));const isPositive=s>0;const bg=alpha<0.05?'transparent':isPositive?`rgba(34,197,94,${(alpha*0.75).toFixed(2)})`:`rgba(239,68,68,${(alpha*0.75).toFixed(2)})`;const tc=alpha>0.55?'#fff':alpha>0.1?(isPositive?'var(--green)':'var(--red)'):'var(--text)';const label=s>0.01?`+${s.toFixed(3)}`:s<-0.01?s.toFixed(3):'neutral';const needsSpace=w&&!/^[.,!?;:)\]}"'…।]/.test(w);return `${needsSpace?' ':''}<span class="exp-token" style="background:${bg};color:${tc}" title="${escapeHtml(w)} [${label}]">${escapeHtml(w)}</span>`;}).join('');
+}
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function switchDetailTab(idx){['dp-preds-panel','dp-probs-panel','dp-exp-panel'].forEach((id,i)=>{document.getElementById(id).classList.toggle('active',i===idx);});document.querySelectorAll('.detail-panel .tab').forEach((t,i)=>{t.classList.toggle('active',i===idx);});}
+function closeDetail(e){if(e.target===document.getElementById('detail-overlay'))closeDetailPanel();}
+function closeDetailPanel(){document.getElementById('detail-overlay').classList.remove('open');}
+
+function renderF1(){
+  const hasLabels=LABELED&&DATA.metrics&&DATA.metrics.f1;
+  document.getElementById('f1-no-labels').style.display=hasLabels?'none':'block';
+  document.getElementById('f1-content').style.display=hasLabels?'block':'none';
+  if(!hasLabels)return;
+  const f1=DATA.metrics.f1;const acc=DATA.metrics.accuracy;
+  document.getElementById('f1-badges').innerHTML=[['F1 L1 Macro',f1.L1_macro,'var(--blue)'],['F1 L2 Macro',f1.L2_macro,'var(--accent)'],['F1 L3 Macro',f1.L3_macro,'var(--purple)'],['L1 Accuracy',acc.L1,'var(--green)'],['L2 Accuracy',acc.L2,'var(--teal)']].map(([label,val,color])=>`<div class="f1-badge" style="border-color:${color}20"><div><div class="label">${label}</div><div class="val" style="color:${color}">${typeof val==='number'&&val<=1?(val*100).toFixed(1)+'%':val}</div></div></div>`).join('');
+  const pcl1=DATA.metrics.per_class_l1;document.getElementById('f1-l1-bars').innerHTML=DATA.meta.l1_classes.filter(n=>pcl1[n]).map((n,i)=>`<div class="hbar"><div class="hbar-label" title="${n}">${n}</div><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(pcl1[n]['f1-score']*100)}%;background:${PALETTE[i%PALETTE.length]}"></div></div><div class="hbar-val">${(pcl1[n]['f1-score']*100).toFixed(0)}%</div></div>`).join('');
+  const pcl2=DATA.metrics.per_class_l2;document.getElementById('f1-l2-bars').innerHTML=DATA.meta.l2_classes.filter(n=>pcl2[n]).map((n,i)=>`<div class="hbar"><div class="hbar-label" title="${n}">${n}</div><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(pcl2[n]['f1-score']*100)}%;background:${PALETTE[i%PALETTE.length]}"></div></div><div class="hbar-val">${(pcl2[n]['f1-score']*100).toFixed(0)}%</div></div>`).join('');
+  const pcl3=DATA.metrics.per_class_l3;document.getElementById('f1-l3-bars').innerHTML=DATA.meta.l3_classes.filter(n=>pcl3[n]).map((n,i)=>`<div class="hbar"><div class="hbar-label" title="${n}">${n}</div><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(pcl3[n]['f1-score']*100)}%;background:${PALETTE[i%PALETTE.length]}"></div></div><div class="hbar-val">${(pcl3[n]['f1-score']*100).toFixed(0)}%</div></div>`).join('');
+  document.getElementById('acc-bars').innerHTML=[['L1 Accuracy',acc.L1,'var(--blue)'],['L2 Accuracy',acc.L2,'var(--accent)']].map(([label,val,col])=>`<div class="hbar"><div class="hbar-label">${label}</div><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(val*100)}%;background:${col}"></div></div><div class="hbar-val">${(val*100).toFixed(1)}%</div></div>`).join('');
+  document.getElementById('wf1-bars').innerHTML=[['L1 Weighted',f1.L1_weighted,'var(--blue)'],['L2 Weighted',f1.L2_weighted,'var(--accent)']].map(([label,val,col])=>`<div class="hbar"><div class="hbar-label">${label}</div><div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(val*100)}%;background:${col}"></div></div><div class="hbar-val">${(val*100).toFixed(1)}%</div></div>`).join('');
+}
+
+function renderPerClass(){
+  const hasLabels=LABELED&&DATA.metrics&&DATA.metrics.per_class_l2;
+  document.getElementById('pc-no-labels').style.display=hasLabels?'none':'block';
+  document.getElementById('pc-content').style.display=hasLabels?'block':'none';
+  if(!hasLabels)return;
+  renderPCTable('pc-l1',DATA.meta.l1_classes,DATA.metrics.per_class_l1);
+  renderPCTable('pc-l2',DATA.meta.l2_classes,DATA.metrics.per_class_l2);
+  renderPCTable('pc-l3',DATA.meta.l3_classes,DATA.metrics.per_class_l3);
+}
+function renderPCTable(elId,classes,report){
+  const rows=classes.filter(n=>report[n]).map(n=>{const d=report[n];const f=d['f1-score'];const fc=f>=0.8?'var(--green)':f>=0.5?'var(--amber)':'var(--red)';return `<tr><td title="${n}">${n}</td><td>${d.precision.toFixed(3)}</td><td>${d.recall.toFixed(3)}</td><td style="color:${fc};font-weight:600">${f.toFixed(3)}</td><td>${d.support}</td></tr>`;}).join('');
+  const avg=report['macro avg'];const wa=report['weighted avg'];
+  document.getElementById(elId).innerHTML=`<div class="table-wrap"><table class="pcr-table"><thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th><th>Support</th></tr></thead><tbody>${rows}<tr style="border-top:2px solid var(--border2);background:var(--bg3)"><td style="color:var(--text3)">macro avg</td><td>${avg.precision.toFixed(3)}</td><td>${avg.recall.toFixed(3)}</td><td style="font-weight:600">${avg['f1-score'].toFixed(3)}</td><td>${avg.support}</td></tr><tr style="background:var(--bg3)"><td style="color:var(--text3)">weighted avg</td><td>${wa.precision.toFixed(3)}</td><td>${wa.recall.toFixed(3)}</td><td style="font-weight:600">${wa['f1-score'].toFixed(3)}</td><td>${wa.support}</td></tr></tbody></table></div>`;
+}
+function switchPCTab(name){['l1','l2','l3'].forEach(n=>{document.getElementById('pc-'+n).style.display=n===name?'block':'none';});document.querySelectorAll('#screen-perclass .tab').forEach((t,i)=>{t.classList.toggle('active',['l1','l2','l3'][i]===name);});}
+
+function renderConfusion(){
+  const hasLabels=LABELED&&DATA.metrics&&DATA.metrics.confusion_matrix_l1;
+  document.getElementById('cm-no-labels').style.display=hasLabels?'none':'block';
+  document.getElementById('cm-content').style.display=hasLabels?'block':'none';
+  if(!hasLabels)return;
+  renderCM('cm-l1',DATA.metrics.confusion_matrix_l1);
+  renderCM('cm-l2',DATA.metrics.confusion_matrix_l2);
+}
+function renderCM(elId,cmData){
+  const{matrix,labels}=cmData;const maxVal=Math.max(...matrix.flat());const cellSize=Math.max(36,Math.min(72,Math.floor(400/labels.length)));const labelW=120;const svgW=labelW+labels.length*cellSize+20;const headerH=20;const svgH=headerH+labels.length*cellSize+40;
+  let svg=`<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:${svgW}px;display:block;overflow:visible">`;
+  svg+=`<text x="${labelW+labels.length*cellSize/2}" y="${headerH-2}" text-anchor="middle" font-size="10" fill="var(--text3)" font-family="DM Mono">Predicted</text>`;
+  labels.forEach((l,j)=>{const x=labelW+j*cellSize+cellSize/2;const short=l.length>8?l.slice(0,8)+'…':l;svg+=`<text x="${x}" y="${headerH+13}" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="DM Mono">${short}</text>`;});
+  svg+=`<text transform="rotate(-90)" x="${-(headerH+labels.length*cellSize/2+20)}" y="16" text-anchor="middle" font-size="10" fill="var(--text3)" font-family="DM Mono">Actual</text>`;
+  labels.forEach((rl,i)=>{const y=headerH+20+i*cellSize;const short=rl.length>12?rl.slice(0,12)+'…':rl;svg+=`<text x="${labelW-6}" y="${y+cellSize/2+4}" text-anchor="end" font-size="9" fill="var(--text3)" font-family="DM Mono">${short}</text>`;matrix[i].forEach((v,j)=>{const isD=i===j;const alpha=maxVal>0?v/maxVal:0;let fill;if(isD)fill=`rgba(108,99,255,${Math.max(0.06,alpha*0.85)})`;else if(v>0)fill=`rgba(239,68,68,${Math.max(0.04,alpha*0.7)})`;else fill='var(--bg3)';const tc=alpha>0.5?'#fff':'var(--text)';svg+=`<rect x="${labelW+j*cellSize+2}" y="${y+2}" width="${cellSize-4}" height="${cellSize-4}" rx="4" fill="${fill}"/>`;if(v>0)svg+=`<text x="${labelW+j*cellSize+cellSize/2}" y="${y+cellSize/2+4}" text-anchor="middle" font-size="10" fill="${tc}" font-weight="600" font-family="DM Mono">${v}</text>`;});});
+  svg+=`</svg>`;document.getElementById(elId).innerHTML=`<div style="overflow-x:auto">${svg}</div>`;
+}
+function switchCMTab(name){document.getElementById('cm-l1').style.display=name==='l1'?'block':'none';document.getElementById('cm-l2').style.display=name==='l2'?'block':'none';document.querySelectorAll('#screen-confusion .tab').forEach((t,i)=>{t.classList.toggle('active',['l1','l2'][i]===name);});}
+
+function renderExplanations(){
+  const expResults=RESULTS.filter(r=>r.explanations);if(!expResults.length)return;
+  document.getElementById('exp-list').innerHTML=expResults.map((r,i)=>{const exp=r.explanations;let html=`<div class="card mb-16"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div><span class="mono" style="color:var(--text2);font-size:12px">${r.id}</span><span style="margin-left:10px">${l1Badge(r.predictions.L1)}</span><span class="badge badge-accent" style="margin-left:6px">${r.predictions.L2}</span></div><span style="font-size:11px;color:var(--text3)">${r.language||''} · ${r.dialect||''}</span></div><div style="font-size:12px;line-height:1.8;color:var(--text2);margin-bottom:14px;padding:8px 12px;background:var(--bg3);border-radius:var(--radius-sm)">${r.transcript_preview}…</div>`;if(exp.L2){html+=`<div style="margin-bottom:12px"><div class="card-title">L2: ${exp.L2.class}</div><div class="exp-text">${renderExpText(exp.L2.word_scores)}</div></div>`;}if(exp.L3&&Object.keys(exp.L3).length){Object.entries(exp.L3).forEach(([flag,d])=>{html+=`<div style="margin-bottom:12px"><div class="card-title">L3: ${flag}</div><div class="exp-text">${renderExpText(d.word_scores)}</div></div>`;});}html+=`</div>`;return html;}).join('');
+}
+
+function buildDonut(segments,r){
+  const total=segments.reduce((s,d)=>s+d.val,0);if(!total)return `<svg viewBox="0 0 ${r*2} ${r*2}"><circle cx="${r}" cy="${r}" r="${r*0.65}" fill="none" stroke="var(--bg4)" stroke-width="${r*0.28}"/></svg>`;
+  const outerR=r*0.86,innerR=r*0.56,sw=outerR-innerR;let paths='';let angle=-Math.PI/2;
+  segments.forEach(seg=>{const sweep=seg.val/total*2*Math.PI;const x1=r+outerR*Math.cos(angle),y1=r+outerR*Math.sin(angle);const x2=r+outerR*Math.cos(angle+sweep),y2=r+outerR*Math.sin(angle+sweep);const lg=sweep>Math.PI?1:0;if(sweep>0.01)paths+=`<path d="M${x1.toFixed(2)} ${y1.toFixed(2)} A${outerR} ${outerR} 0 ${lg} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}" fill="none" stroke="${seg.color}" stroke-width="${sw}" stroke-linecap="butt"/>`;angle+=sweep;});
+  return `<svg viewBox="0 0 ${r*2} ${r*2}">${paths}</svg>`;
+}
+
+goScreen('upload');
+</script>
+</body>
+</html>

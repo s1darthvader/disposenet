@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>DisposeNet Demo</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:0;padding:1rem;background:#fff;color:#111;font-size:14px}
+.snav{display:flex;gap:0;margin-bottom:1.5rem;border:1px solid #e5e5e5;border-radius:10px;overflow:hidden}
+.snav button{flex:1;padding:10px 6px;background:transparent;border:none;border-right:1px solid #e5e5e5;font-size:11px;color:#666;cursor:pointer;line-height:1.4}
+.snav button:last-child{border-right:none}
+.snav button.active{background:#f5f5f5;color:#111;font-weight:600}
+.snav button span{display:block;font-size:10px;color:#aaa;margin-top:2px}
+.sc{display:none}.sc.active{display:block}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500}
+.b-blue{background:#E6F1FB;color:#0C447C}.b-green{background:#EAF3DE;color:#27500A}
+.b-amber{background:#FAEEDA;color:#633806}.b-red{background:#FCEBEB;color:#791F1F}
+.b-gray{background:#F1EFE8;color:#444}.b-purple{background:#EEEDFE;color:#3C3489}
+.card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:1rem 1.25rem}
+.mc{background:#f5f5f5;border-radius:8px;padding:.85rem 1rem}
+.mc .lbl{font-size:11px;color:#666;margin-bottom:3px}
+.mc .val{font-size:20px;font-weight:600}
+.slbl{font-size:11px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;margin-top:0}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+th{text-align:left;font-size:11px;font-weight:600;color:#999;padding:0 8px 8px 0}
+td{padding:7px 8px 7px 0;border-top:1px solid #f0f0f0;vertical-align:middle}
+tr.rh:hover td{background:#f9f9f9;cursor:pointer}
+.cbar{height:6px;border-radius:3px;background:#eee;overflow:hidden;width:60px;display:inline-block;vertical-align:middle}
+.cfill{height:100%;border-radius:3px}
+.hbar-wrap{display:flex;align-items:center;gap:8px;padding:4px 0}
+.hbar-label{font-size:12px;color:#555;width:200px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hbar-track{flex:1;height:10px;background:#f0f0f0;border-radius:3px;overflow:hidden}
+.hbar-fill{height:100%;border-radius:3px}
+.hbar-val{font-size:12px;color:#999;width:36px;text-align:right;flex-shrink:0}
+.seg-row{display:flex;height:28px;border-radius:8px;overflow:hidden;margin-bottom:.5rem}
+.seg-row div{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500}
+button{padding:7px 14px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:13px}
+button:hover{background:#f5f5f5}
+select{padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:12px;background:#fff}
+input[type=text]{padding:4px 6px;border:1px solid #ddd;border-radius:6px;font-size:12px}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:5px}
+code{font-family:monospace;font-size:11px}
+
+.drop-zone{border:2px dashed #ccc;border-radius:10px;padding:2.5rem;text-align:center;background:#fafafa;margin-bottom:1.25rem;transition:border-color .15s,background .15s}
+.drop-zone.drag-over{border-color:#3B82F6;background:#EFF6FF}
+.drop-zone.has-file{border-color:#1D9E75;background:#f0faf6;border-style:solid}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.pulsing{animation:pulse 1.4s ease-in-out infinite}
+.flagged{background:#FEF3F2 !important;border-color:#FDA29B !important;color:#B42318 !important}
+
+/* ---- Training Data Tab additions ---- */
+.viz-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.viz-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.chart-tabs{display:flex;gap:6px;margin-bottom:1.25rem;flex-wrap:wrap}
+.chart-tab{padding:6px 14px;border:1px solid #ddd;border-radius:20px;background:#fff;cursor:pointer;font-size:12px;color:#666;transition:all .15s}
+.chart-tab.active{background:#111;color:#fff;border-color:#111}
+.chart-tab:hover:not(.active){background:#f5f5f5}
+
+/* Donut chart */
+.donut-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.donut-wrap svg{display:block}
+.donut-center{position:absolute;text-align:center;pointer-events:none}
+.donut-center .big{font-size:22px;font-weight:700;line-height:1}
+.donut-center .small{font-size:11px;color:#888;margin-top:2px}
+
+/* Confidence histogram */
+.hist-bar-wrap{display:flex;align-items:flex-end;gap:3px;height:80px;padding-bottom:4px}
+.hist-bar{flex:1;border-radius:3px 3px 0 0;min-width:12px;transition:opacity .15s;cursor:default;position:relative}
+.hist-bar:hover{opacity:.75}
+.hist-bar .hist-tip{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#222;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;white-space:nowrap;margin-bottom:4px;z-index:10}
+.hist-bar:hover .hist-tip{display:block}
+.hist-x{display:flex;gap:3px;font-size:10px;color:#aaa}
+.hist-x span{flex:1;text-align:center}
+
+/* Scatter plot SVG */
+.scatter-svg{width:100%;display:block}
+
+/* Legend */
+.legend-row{display:flex;align-items:center;gap:6px;font-size:12px;color:#555;margin-bottom:5px}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.legend-sq{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+/* Stat pill */
+.stat-pill{display:inline-flex;align-items:center;gap:6px;background:#f5f5f5;border-radius:20px;padding:4px 10px;font-size:12px;color:#555}
+.stat-pill .pv{font-weight:700;color:#111}
+
+/* Heatmap cell */
+.hm-cell{border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;transition:opacity .15s}
+.hm-cell:hover{opacity:.8;cursor:default}
+
+/* Evaluation badge row */
+.eval-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f5f5}
+.eval-row:last-child{border-bottom:none}
+</style></head><body>
+
+<div class="snav">
+  <button class="active" onclick="go(0)">1 &mdash; Upload<span>New batch</span></button>
+  <button onclick="go(1)">2 &mdash; Batches<span>History &amp; status</span></button>
+  <button onclick="go(2)">3 &mdash; Results<span>Call-level</span></button>
+  <button onclick="go(4)">4 &mdash; Training data<span>Distribution</span></button>
+</div>
+
+<!-- ===================== SCREEN 0: Upload ===================== -->
+<div class="sc active" id="s0">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+    <div><p style="font-size:18px;font-weight:600;margin:0">New batch</p><p style="font-size:13px;color:#666;margin:4px 0 0">Upload a JSON file to classify with DisposeNet</p></div>
+    <button id="submit-btn" onclick="submitBatch()" disabled style="opacity:.4;cursor:not-allowed">Submit batch &rarr;</button>
+  </div>
+  <div class="drop-zone" id="drop-zone"
+    ondragover="handleDragOver(event)"
+    ondragleave="handleDragLeave(event)"
+    ondrop="handleDrop(event)">
+    <div style="font-size:24px;color:#bbb;margin-bottom:8px">&#8593;</div>
+    <p style="font-weight:600;margin:0 0 4px">Drop a JSON file here</p>
+    <p style="font-size:12px;color:#888;margin:0 0 12px">Array of transcript objects &mdash; see schema below</p>
+    <input type="file" id="file-input" accept=".json" style="display:none" onchange="handleFileSelect(event)">
+    <button onclick="document.getElementById('file-input').click()">Browse files</button>
+  </div>
+  <div style="margin-bottom:1.25rem">
+    <div class="card">
+      <p class="slbl">Expected JSON schema</p>
+      <code style="line-height:2;display:block;color:#555">[{<br>&nbsp;&nbsp;"id": "call_001",<br>&nbsp;&nbsp;"language": "Hindi",<br>&nbsp;&nbsp;"dialect": "Delhi Hindi",<br>&nbsp;&nbsp;"call_stage": "Mid Bucket",<br>&nbsp;&nbsp;"transcript": "Agent: ..."<br>}]</code>
+    </div>
+  </div>
+  <div id="file-status" style="background:#f5f5f5;border-radius:8px;padding:.85rem 1rem;display:flex;justify-content:space-between;align-items:center">
+    <p style="font-size:12px;color:#999;margin:0">No file selected</p>
+    <span class="badge b-gray">Waiting</span>
+  </div>
+</div>
+
+<!-- ===================== SCREEN 1: Batches ===================== -->
+<div class="sc" id="s1">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+    <div><p style="font-size:18px;font-weight:600;margin:0">Batches</p><p style="font-size:13px;color:#666;margin:4px 0 0">All inference runs &middot; click a completed batch to view results</p></div>
+    <button onclick="go(0)">+ New batch</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem">
+    <div class="mc"><div class="lbl">Total batches</div><div class="val" id="sum-batches">0</div></div>
+    <div class="mc"><div class="lbl">Calls classified</div><div class="val" id="sum-calls">0</div></div>
+    <div class="mc"><div class="lbl">Low confidence flags</div><div class="val" style="color:#A32D2D" id="sum-low">0</div></div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table>
+      <thead><tr style="background:#f5f5f5">
+        <th style="padding:10px 8px 10px 16px;width:26%">Batch</th>
+        <th style="width:8%">Calls</th><th style="width:14%">Status</th>
+        <th style="width:14%">Submitted</th><th style="width:14%">Processing time</th>
+        <th style="width:20%">Avg. confidence</th><th style="width:4%"></th>
+      </tr></thead>
+      <tbody id="batch-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== SCREEN 2: Results ===================== -->
+<div class="sc" id="s2">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button onclick="go(1)" style="font-size:12px;padding:5px 12px">&larr; Batches</button>
+      <div><p style="font-size:18px;font-weight:600;margin:0">Call results</p><p style="font-size:13px;color:#666;margin:2px 0 0" id="res-sub">0 calls &middot; 0 batches</p></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+    <select id="bFilter" onchange="filterRes()"><option value="all">All batches</option></select>
+    <select id="l1F" onchange="filterRes()"><option value="all">All L1</option><option value="Contacted">Contacted</option><option value="Not Contacted">Not Contacted</option></select>
+    <select id="langF" onchange="filterRes()"><option value="all">All languages</option><option value="Hindi">Hindi</option><option value="Hinglish">Hinglish</option><option value="English">English</option></select>
+    <select id="confF" onchange="filterRes()"><option value="all">All confidence</option><option value="low">Low (&lt;0.70)</option><option value="high">High (&ge;0.70)</option></select>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem">
+    <div class="mc"><div class="lbl">Showing</div><div class="val" id="sc-t">0</div></div>
+    <div class="mc"><div class="lbl">Contacted</div><div class="val" style="color:#0C447C" id="sc-c">0</div></div>
+    <div class="mc"><div class="lbl">Not contacted</div><div class="val" id="sc-nc">0</div></div>
+    <div class="mc"><div class="lbl">Low confidence</div><div class="val" style="color:#A32D2D" id="sc-lc">0</div></div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table style="table-layout:fixed">
+      <thead><tr style="background:#f5f5f5">
+        <th style="padding:10px 8px 10px 16px;width:11%">ID</th>
+        <th style="width:20%">Batch</th><th style="width:11%">L1</th>
+        <th style="width:20%">L2</th><th style="width:10%">Language</th>
+        <th style="width:13%">Dialect</th><th style="width:11%">Conf.</th><th style="width:4%"></th>
+      </tr></thead>
+      <tbody id="res-body"></tbody>
+    </table>
+    <div style="padding:10px 16px;border-top:1px solid #f0f0f0;font-size:12px;color:#999" id="res-foot"></div>
+  </div>
+</div>
+
+<!-- ===================== SCREEN 3: Detail ===================== -->
+<div class="sc" id="s3">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button onclick="go(2)" style="font-size:12px;padding:5px 12px">&larr; Results</button>
+      <div>
+        <p style="font-size:18px;font-weight:600;margin:0" id="det-title">-</p>
+        <p style="font-size:13px;color:#666;margin:2px 0 0" id="det-sub">-</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span id="det-l1-badge"></span>
+      <span id="det-conf-badge"></span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
+    <div class="card">
+      <p class="slbl">SLM output</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:#999;width:18px">L1</span>
+          <span id="det-l1-val" class="badge b-blue"></span>
+        </div>
+        <span id="det-l1-conf" style="font-size:12px;color:#888"></span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:#999;width:18px">L2</span>
+          <span id="det-l2-val" style="font-size:13px"></span>
+        </div>
+        <span id="det-l2-conf" style="font-size:12px;color:#888"></span>
+      </div>
+      <div style="padding:8px 0">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+          <div style="display:flex;align-items:flex-start;gap:8px;flex:1">
+            <span style="font-size:11px;color:#999;width:18px;padding-top:2px">L3</span>
+            <div id="det-l3-val" style="display:flex;flex-wrap:wrap;gap:4px;flex:1"></div>
+          </div>
+          <span id="det-l3-conf" style="font-size:12px;color:#888;flex-shrink:0"></span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <p class="slbl">Evidence signals</p>
+      <div id="det-signals" style="font-size:12px;line-height:2;color:#666"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:1rem">
+    <p class="slbl">Transcript</p>
+    <div id="det-transcript" style="font-size:13px;line-height:1.9;max-height:200px;overflow-y:auto"></div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button id="det-prev" style="font-size:12px;padding:6px 14px" onclick="navDetail(-1)">&larr; Prev</button>
+    <button id="det-next" style="font-size:12px;padding:6px 14px" onclick="navDetail(1)">Next &rarr;</button>
+    <button id="flag-btn" style="font-size:12px;padding:6px 14px;margin-left:auto;border-color:#f0c0c0;color:#A32D2D" onclick="toggleFlag()">Flag for review</button>
+  </div>
+</div>
+
+<!-- ===================== SCREEN 4: Training Data ===================== -->
+<div class="sc" id="s4">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <div>
+      <p style="font-size:18px;font-weight:600;margin:0">Training data</p>
+      <p style="font-size:13px;color:#666;margin:4px 0 0" id="td-sub">Distribution analysis</p>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span id="td-eval-pill" class="stat-pill" style="display:none"><span class="pv" id="td-eval-pct">—</span> approved</span>
+    </div>
+  </div>
+
+  <!-- Top KPI row -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.25rem">
+    <div class="mc"><div class="lbl">Total transcripts</div><div class="val" id="td-total">0</div></div>
+    <div class="mc"><div class="lbl">Languages</div><div class="val" id="td-lang">0</div></div>
+    <div class="mc"><div class="lbl">Dialect groups</div><div class="val" id="td-dialect">0</div></div>
+    <div class="mc"><div class="lbl">Unique L2 classes</div><div class="val" id="td-l2">0</div></div>
+    <div class="mc"><div class="lbl">Avg. confidence</div><div class="val" id="td-avg-conf">—</div></div>
+  </div>
+
+  <!-- Chart section tabs -->
+  <div class="chart-tabs">
+    <button class="chart-tab active" onclick="switchViz('overview')">Overview</button>
+    <button class="chart-tab" onclick="switchViz('lang')">Language</button>
+    <button class="chart-tab" onclick="switchViz('dialect')">Dialect</button>
+    <button class="chart-tab" onclick="switchViz('l2')">L2 Dispositions</button>
+    <button class="chart-tab" onclick="switchViz('confidence')">Confidence</button>
+    <button class="chart-tab" onclick="switchViz('callstage')">Call Stage</button>
+    <button class="chart-tab" onclick="switchViz('heatmap')">Lang × L1 Heatmap</button>
+  </div>
+
+  <div id="viz-area"></div>
+</div>
+
+<script>
+const API_BASE = 'http://localhost:8000';
+
+let ROWS = [];
+let TRANSCRIPTS = {};
+let SIGNALS = {};
+let BATCHES = [];
+let currentFilteredRows=[];
+let currentDetailIdx=0;
+let flaggedCalls={};
+let uploadedFile=null;
+let parsedFileData=null;
+let currentViz = 'overview';
+
+const PALETTE=['#B5D4F4','#9FE1CB','#CECBF6','#F5C4B3','#FAC775','#C0DD97','#F4C0D1','#D3D1C7','#85B7EB','#5DCAA5','#AFA9EC','#F0997B','#EF9F27','#97C459','#ED93B1'];
+
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch(`${API_BASE}/api/state`);
+    const data = await res.json();
+    ROWS = data.rows || [];
+    TRANSCRIPTS = data.transcripts || {};
+    SIGNALS = data.signals || {};
+    BATCHES = data.batches || [];
+    updateUI();
+  } catch(e) { console.error("Failed to fetch initial state:", e); }
+});
+
+function updateUI() {
+  renderBatches();
+  updateFilters();
+  filterRes();
+  renderViz();
+}
+
+// -------- Upload --------
+function handleDragOver(e){e.preventDefault();document.getElementById('drop-zone').classList.add('drag-over');}
+function handleDragLeave(e){document.getElementById('drop-zone').classList.remove('drag-over');}
+function handleDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('drag-over');var f=e.dataTransfer.files[0];if(f)processFile(f);}
+function handleFileSelect(e){var f=e.target.files[0];if(f)processFile(f);}
+
+function processFile(file){
+  if(!file.name.endsWith('.json')){setFileStatus('<p style="font-size:12px;color:#A32D2D;margin:0">Only .json files are accepted</p>','<span class="badge b-red">Invalid file type</span>',false);return;}
+  uploadedFile=file;
+  document.getElementById('drop-zone').classList.add('has-file');
+  var sizeKB=Math.round(file.size/1024);
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var data=JSON.parse(ev.target.result);
+      if(!Array.isArray(data))throw new Error();
+      parsedFileData=data;
+      setFileStatus('<p style="font-size:12px;color:#666;margin:0">Ready &middot; <strong>'+file.name+'</strong> &middot; '+data.length+' transcripts &middot; '+sizeKB+' KB</p>','<span class="badge b-green">Valid schema</span>',true);
+    }catch(e){setFileStatus('<p style="font-size:12px;color:#A32D2D;margin:0"><strong>'+file.name+'</strong> &middot; '+sizeKB+' KB &middot; Invalid JSON</p>','<span class="badge b-red">Schema error</span>',false);}
+  };
+  reader.readAsText(file);
+}
+
+function setFileStatus(left,badge,enable){
+  document.getElementById('file-status').innerHTML=left+badge;
+  var btn=document.getElementById('submit-btn');
+  btn.disabled=!enable;btn.style.opacity=enable?'1':'0.4';btn.style.cursor=enable?'pointer':'not-allowed';
+}
+
+async function submitBatch(){
+  if(!uploadedFile||!parsedFileData)return;
+  const btn=document.getElementById('submit-btn');
+  btn.textContent="Processing...";btn.disabled=true;
+  const payload={batch_name:uploadedFile.name,calls:parsedFileData};
+  try{
+    const res=await fetch(`${API_BASE}/api/classify`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    await res.json();
+    const stateRes=await fetch(`${API_BASE}/api/state`);
+    const stateData=await stateRes.json();
+    ROWS=stateData.rows||[];TRANSCRIPTS=stateData.transcripts||{};SIGNALS=stateData.signals||{};BATCHES=stateData.batches||[];
+    updateUI();go(1);
+  }catch(e){console.error("Submission failed:",e);alert("Failed to submit batch to the backend.");}
+  finally{
+    btn.innerHTML="Submit batch &rarr;";
+    setFileStatus('<p style="font-size:12px;color:#999;margin:0">No file selected</p>','<span class="badge b-gray">Waiting</span>',false);
+    uploadedFile=null;parsedFileData=null;
+    document.getElementById('drop-zone').classList.remove('has-file');
+  }
+}
+
+// -------- Helpers --------
+function l1b(v){return v==='Contacted'?'<span class="badge b-blue">Contacted</span>':'<span class="badge b-gray">Not Contacted</span>';}
+function confCell(c){var w=Math.round(c*100);var col=c>=0.7?'#1D9E75':'#EF9F27';var tc=c>=0.7?'#085041':'#633806';return '<div class="cbar"><div class="cfill" style="width:'+w+'%;background:'+col+'"></div></div><span style="font-size:11px;margin-left:5px;color:'+tc+'">'+c.toFixed(2)+'</span>';}
+function confBadge(c){var col=c>=0.7?'b-green':'b-amber';return '<span class="badge '+col+'">Conf '+c.toFixed(2)+'</span>';}
+function confLabel(c){if(c===null||c===undefined)return '<span style="color:#ccc">—</span>';var tc=c>=0.7?'#085041':'#633806';return '<span style="color:'+tc+'">'+c.toFixed(2)+'</span>';}
+function aggregate(key){var c={};ROWS.forEach(r=>{c[r[key]]=(c[r[key]]||0)+1;});return Object.entries(c).sort((a,b)=>b[1]-a[1]);}
+function hbar(label,val,max,color){var pct=Math.round(val/max*100);return '<div class="hbar-wrap"><div class="hbar-label" title="'+label+'">'+label+'</div><div class="hbar-track"><div class="hbar-fill" style="width:'+pct+'%;background:'+color+'"></div></div><div class="hbar-val">'+val+'</div></div>';}
+
+// -------- Batches --------
+function renderBatches(){
+  document.getElementById('sum-batches').textContent=BATCHES.length;
+  document.getElementById('sum-calls').textContent=ROWS.length;
+  document.getElementById('sum-low').textContent=ROWS.filter(r=>r.conf<0.7).length;
+  document.getElementById('batch-body').innerHTML=BATCHES.map(b=>`<tr class="rh" onclick="setBatch('${b.name}');go(2)">
+    <td style="padding-left:16px"><p style="margin:0;font-weight:600;font-size:13px">${b.name}</p><p style="margin:0;font-size:11px;color:#999">${b.calls} calls</p></td>
+    <td>${b.calls}</td><td><span class="dot" style="background:#1D9E75"></span><span style="font-size:12px;color:#085041">${b.status}</span></td>
+    <td style="font-size:12px;color:#888">${b.time}</td><td style="font-size:12px">—</td>
+    <td><div style="display:flex;align-items:center;gap:6px"><div class="cbar" style="width:80px"><div class="cfill" style="width:${Math.round(b.avg_conf*100)}%;background:${b.avg_conf>=0.7?'#1D9E75':'#EF9F27'}"></div></div><span style="font-size:12px;color:${b.avg_conf>=0.7?'#085041':'#633806'}">${b.avg_conf.toFixed(2)}</span></div></td>
+    <td style="padding-right:10px;color:#ccc">&rarr;</td>
+  </tr>`).join('');
+}
+
+function updateFilters(){
+  var bFilter=document.getElementById('bFilter');var cv=bFilter.value;
+  var ub=[...new Set(BATCHES.map(b=>b.name))];
+  bFilter.innerHTML='<option value="all">All batches</option>'+ub.map(n=>`<option value="${n}">${n}</option>`).join('');
+  if(ub.includes(cv))bFilter.value=cv;
+  var langF=document.getElementById('langF');var lc=langF.value;
+  var ul=[...new Set(ROWS.map(r=>r.lang))];
+  langF.innerHTML='<option value="all">All languages</option>'+ul.map(n=>`<option value="${n}">${n}</option>`).join('');
+  if(ul.includes(lc))langF.value=lc;
+}
+
+function filterRes(){
+  var bf=document.getElementById('bFilter').value;
+  var l1=document.getElementById('l1F').value;
+  var lf=document.getElementById('langF').value;
+  var cf=document.getElementById('confF').value;
+  currentFilteredRows=ROWS.filter(r=>{
+    if(bf!=='all'&&r.batch!==bf)return false;
+    if(l1!=='all'&&r.l1!==l1)return false;
+    if(lf!=='all'&&r.lang!==lf)return false;
+    if(cf==='low'&&r.conf>=0.7)return false;
+    if(cf==='high'&&r.conf<0.7)return false;
+    return true;
+  });
+  document.getElementById('sc-t').textContent=currentFilteredRows.length;
+  document.getElementById('sc-c').textContent=currentFilteredRows.filter(r=>r.l1==='Contacted').length;
+  document.getElementById('sc-nc').textContent=currentFilteredRows.filter(r=>r.l1!=='Contacted').length;
+  document.getElementById('sc-lc').textContent=currentFilteredRows.filter(r=>r.conf<0.7).length;
+  var bn=bf==='all'?BATCHES.length+' batches':bf;
+  document.getElementById('res-sub').textContent=currentFilteredRows.length+' calls · '+bn;
+  document.getElementById('res-foot').textContent='Showing '+currentFilteredRows.length+' of '+ROWS.length+' calls · click a row to inspect';
+  document.getElementById('res-body').innerHTML=currentFilteredRows.map((r,i)=>{
+    var fs=flaggedCalls[r.id]?' style="background:#fff8f8"':'';
+    return '<tr class="rh" onclick="openDetail('+i+')"'+fs+'>'
+      +'<td style="padding-left:16px;font-family:monospace;font-size:11px">'+r.id+(flaggedCalls[r.id]?' <span style="color:#A32D2D;font-size:10px">⚑</span>':'')+'</td>'
+      +'<td style="font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.batch+'</td>'
+      +'<td>'+l1b(r.l1)+'</td>'
+      +'<td style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.l2+'</td>'
+      +'<td style="font-size:12px">'+r.lang+'</td>'
+      +'<td style="font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.dialect+'</td>'
+      +'<td>'+confCell(r.conf)+'</td>'
+      +'<td style="padding-right:10px;color:#ccc">&rarr;</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function openDetail(idx){
+  currentDetailIdx=idx;
+  var r=currentFilteredRows[idx];
+  document.getElementById('det-title').textContent=r.id;
+  document.getElementById('det-sub').textContent=r.batch+' · '+r.lang+' · '+r.dialect;
+  document.getElementById('det-l1-badge').innerHTML=l1b(r.l1);
+  document.getElementById('det-conf-badge').innerHTML=confBadge(r.conf);
+  document.getElementById('det-l1-val').textContent=r.l1;
+  document.getElementById('det-l1-val').className='badge '+(r.l1==='Contacted'?'b-blue':'b-gray');
+  document.getElementById('det-l1-conf').innerHTML=confLabel(r.l1c);
+  document.getElementById('det-l2-val').textContent=r.l2;
+  document.getElementById('det-l2-conf').innerHTML=confLabel(r.l2c);
+  var l3html=r.l3&&r.l3.length>0?r.l3.map(t=>'<span class="badge b-gray">'+t+'</span>').join(' '):'<span style="color:#ccc">—</span>';
+  document.getElementById('det-l3-val').innerHTML=l3html;
+  document.getElementById('det-l3-conf').innerHTML=r.l3c!=null?confLabel(r.l3c):'';
+  var sigs=SIGNALS[r.id]||[['~','No signals found','API returned missing data']];
+  document.getElementById('det-signals').innerHTML=sigs.map(s=>{
+    var icon=s[0]==='+'?{bg:'#EAF3DE',tc:'#27500A',sym:'↑'}:s[0]==='-'?{bg:'#FAEEDA',tc:'#633806',sym:'↓'}:{bg:'#F1EFE8',tc:'#444',sym:'~'};
+    return '<div style="margin-bottom:4px"><span style="background:'+icon.bg+';color:'+icon.tc+';padding:1px 6px;border-radius:3px;font-size:11px;margin-right:6px">'+icon.sym+' '+s[1]+'</span><span style="color:#888">'+s[2]+'</span></div>';
+  }).join('');
+  var lines=TRANSCRIPTS[r.id]||[['SYSTEM','No transcript found in DB']];
+  document.getElementById('det-transcript').innerHTML=lines.map(l=>{
+    var isAgent=l[0].includes('AGENT');
+    return '<div style="margin-bottom:8px"><span style="font-size:11px;font-weight:600;color:'+(isAgent?'#999':'#185FA5')+';margin-right:8px">'+l[0]+'</span>'+l[1]+'</div>';
+  }).join('');
+  document.getElementById('det-prev').disabled=idx===0;
+  document.getElementById('det-next').disabled=idx===currentFilteredRows.length-1;
+  var fb=document.getElementById('flag-btn');
+  if(flaggedCalls[r.id]){fb.textContent='Flagged ⚑';fb.classList.add('flagged');}
+  else{fb.textContent='Flag for review';fb.classList.remove('flagged');}
+  go(3);
+}
+
+function navDetail(dir){var n=currentDetailIdx+dir;if(n>=0&&n<currentFilteredRows.length)openDetail(n);}
+function toggleFlag(){
+  var r=currentFilteredRows[currentDetailIdx];if(!r)return;
+  flaggedCalls[r.id]=!flaggedCalls[r.id];
+  var fb=document.getElementById('flag-btn');
+  if(flaggedCalls[r.id]){fb.textContent='Flagged ⚑';fb.classList.add('flagged');}
+  else{fb.textContent='Flag for review';fb.classList.remove('flagged');}
+  filterRes();
+}
+
+// ===============================================================
+//  TRAINING DATA VISUALIZATIONS
+// ===============================================================
+
+function switchViz(v){
+  currentViz=v;
+  document.querySelectorAll('.chart-tab').forEach((b,i)=>{
+    var map=['overview','lang','dialect','l2','confidence','callstage','heatmap'];
+    b.classList.toggle('active',map[i]===v);
+  });
+  renderViz();
+}
+
+function renderViz(){
+  const total = ROWS.length;
+  if(total===0){
+    updateKPIs(0,0,0,0,'—');
+    document.getElementById('viz-area').innerHTML='<div class="card" style="padding:3rem;text-align:center;color:#bbb;font-size:13px">No data available — upload a batch first</div>';
+    return;
+  }
+  const avgConf = (ROWS.reduce((s,r)=>s+r.conf,0)/total);
+  updateKPIs(total,[...new Set(ROWS.map(r=>r.lang))].size,[...new Set(ROWS.map(r=>r.dialect))].size,[...new Set(ROWS.map(r=>r.l2))].size,avgConf.toFixed(2));
+
+  switch(currentViz){
+    case 'overview':   renderOverview(); break;
+    case 'lang':       renderLang(); break;
+    case 'dialect':    renderDialect(); break;
+    case 'l2':         renderL2(); break;
+    case 'confidence': renderConfidence(); break;
+    case 'callstage':  renderCallStage(); break;
+    case 'heatmap':    renderHeatmap(); break;
+  }
+}
+
+function updateKPIs(total,langs,dialects,l2s,avgConf){
+  document.getElementById('td-total').textContent=total.toLocaleString();
+  document.getElementById('td-lang').textContent=langs;
+  document.getElementById('td-dialect').textContent=dialects;
+  document.getElementById('td-l2').textContent=l2s;
+  document.getElementById('td-avg-conf').textContent=avgConf;
+  document.getElementById('td-sub').innerHTML=total.toLocaleString()+' transcripts &middot; distribution analysis';
+}
+
+// --- OVERVIEW ---
+function renderOverview(){
+  const total = ROWS.length;
+  const contacted = ROWS.filter(r=>r.l1==='Contacted').length;
+  const notContacted = total - contacted;
+  const lowConf = ROWS.filter(r=>r.conf<0.7).length;
+  const highConf = total - lowConf;
+  const langData = aggregate('lang');
+  const l2Data = aggregate('l2');
+  const avgConf = ROWS.reduce((s,r)=>s+r.conf,0)/total;
+
+  // Build donut SVG for L1 breakdown
+  const donutSvg = buildDonut([
+    {label:'Contacted',val:contacted,color:'#B5D4F4'},
+    {label:'Not Contacted',val:notContacted,color:'#F1EFE8'}
+  ], 70);
+
+  // Build donut SVG for confidence
+  const confDonutSvg = buildDonut([
+    {label:'High conf',val:highConf,color:'#9FE1CB'},
+    {label:'Low conf',val:lowConf,color:'#FAC775'}
+  ], 70);
+
+  let html = '<div class="viz-grid">';
+
+  // L1 Breakdown card
+  html += `<div class="card">
+    <p class="slbl">L1 contact breakdown</p>
+    <div style="display:flex;align-items:center;gap:20px">
+      <div class="donut-wrap" style="width:120px;height:120px">
+        ${donutSvg}
+        <div class="donut-center">
+          <div class="big">${Math.round(contacted/total*100)}%</div>
+          <div class="small">contacted</div>
+        </div>
+      </div>
+      <div style="flex:1">
+        <div class="legend-row"><span class="legend-sq" style="background:#B5D4F4"></span>Contacted <span style="margin-left:auto;font-weight:600">${contacted}</span></div>
+        <div class="legend-row"><span class="legend-sq" style="background:#F1EFE8"></span>Not Contacted <span style="margin-left:auto;font-weight:600">${notContacted}</span></div>
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid #f0f0f0">
+          <div style="font-size:11px;color:#999;margin-bottom:4px">Contact rate</div>
+          <div style="height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${Math.round(contacted/total*100)}%;background:#85B7EB;border-radius:4px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  // Confidence breakdown card
+  html += `<div class="card">
+    <p class="slbl">Confidence quality</p>
+    <div style="display:flex;align-items:center;gap:20px">
+      <div class="donut-wrap" style="width:120px;height:120px">
+        ${confDonutSvg}
+        <div class="donut-center">
+          <div class="big" style="color:${avgConf>=0.7?'#085041':'#633806'}">${avgConf.toFixed(2)}</div>
+          <div class="small">avg conf</div>
+        </div>
+      </div>
+      <div style="flex:1">
+        <div class="legend-row"><span class="legend-sq" style="background:#9FE1CB"></span>High (&ge;0.70) <span style="margin-left:auto;font-weight:600">${highConf}</span></div>
+        <div class="legend-row"><span class="legend-sq" style="background:#FAC775"></span>Low (&lt;0.70) <span style="margin-left:auto;font-weight:600;color:#A32D2D">${lowConf}</span></div>
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid #f0f0f0">
+          <div style="font-size:11px;color:#999;margin-bottom:4px">High confidence rate</div>
+          <div style="height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${Math.round(highConf/total*100)}%;background:#5DCAA5;border-radius:4px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  html += '</div><div class="viz-grid">';
+
+  // Top languages
+  html += `<div class="card">
+    <p class="slbl">Language mix</p>
+    <div class="seg-row" style="height:32px;margin-bottom:12px">`;
+  langData.forEach((d,i)=>{
+    var pct=(d[1]/total*100).toFixed(1);
+    html+=`<div style="width:${pct}%;background:${PALETTE[i%PALETTE.length]};font-size:11px;color:#333">${pct>8?d[0]:''}</div>`;
+  });
+  html += `</div>`;
+  var maxL=langData[0]?langData[0][1]:1;
+  langData.slice(0,6).forEach((d,i)=>{html+=hbar(d[0],d[1],maxL,PALETTE[i%PALETTE.length]);});
+  html += `</div>`;
+
+  // Top L2
+  html += `<div class="card">
+    <p class="slbl">Top L2 dispositions</p>`;
+  var maxL2=l2Data[0]?l2Data[0][1]:1;
+  l2Data.slice(0,7).forEach((d,i)=>{html+=hbar(d[0],d[1],maxL2,PALETTE[(i+4)%PALETTE.length]);});
+  html += `</div>`;
+
+  html += '</div>';
+  document.getElementById('viz-area').innerHTML = html;
+}
+
+// --- LANGUAGE ---
+function renderLang(){
+  const total=ROWS.length;
+  const data=aggregate('lang');
+  const maxVal=data[0]?data[0][1]:1;
+  const donutSvg=buildDonut(data.map((d,i)=>({label:d[0],val:d[1],color:PALETTE[i%PALETTE.length]})),80);
+
+  // Contacted rate per language
+  const langContacted={};const langTotal={};
+  ROWS.forEach(r=>{langTotal[r.lang]=(langTotal[r.lang]||0)+1;if(r.l1==='Contacted')langContacted[r.lang]=(langContacted[r.lang]||0)+1;});
+
+  let html=`<div class="viz-grid">
+    <div class="card">
+      <p class="slbl">Language distribution — ${total.toLocaleString()} total</p>
+      <div class="seg-row" style="height:36px;margin-bottom:1.25rem">`;
+  data.forEach((d,i)=>{var pct=(d[1]/total*100).toFixed(1);html+=`<div style="width:${pct}%;background:${PALETTE[i%PALETTE.length]};color:#333;font-size:12px">${pct>7?d[0]+' '+pct+'%':''}</div>`;});
+  html+=`</div>`;
+  data.forEach((d,i)=>{html+=hbar(d[0],d[1],maxVal,PALETTE[i%PALETTE.length]);});
+  html+=`</div>
+    <div class="card">
+      <p class="slbl">Language share</p>
+      <div style="display:flex;gap:16px;align-items:center">
+        <div class="donut-wrap" style="width:130px;height:130px;flex-shrink:0">
+          ${donutSvg}
+        </div>
+        <div>`;
+  data.forEach((d,i)=>{html+=`<div class="legend-row"><span class="legend-sq" style="background:${PALETTE[i%PALETTE.length]}"></span>${d[0]}<span style="margin-left:8px;font-size:11px;color:#aaa">${(d[1]/total*100).toFixed(1)}%</span><span style="margin-left:auto;font-weight:600;font-size:12px">${d[1]}</span></div>`;});
+  html+=`</div></div></div></div>`;
+
+  // Contact rate by language
+  html+=`<div class="card"><p class="slbl">Contact rate by language</p>`;
+  data.forEach((d,i)=>{
+    var rate=langContacted[d[0]]?Math.round((langContacted[d[0]]/langTotal[d[0]])*100):0;
+    html+=`<div class="hbar-wrap">
+      <div class="hbar-label">${d[0]}</div>
+      <div class="hbar-track" style="height:12px"><div class="hbar-fill" style="width:${rate}%;background:${PALETTE[i%PALETTE.length]}"></div></div>
+      <div class="hbar-val">${rate}%</div>
+    </div>`;
+  });
+  html+=`</div>`;
+  document.getElementById('viz-area').innerHTML=html;
+}
+
+// --- DIALECT ---
+function renderDialect(){
+  const data=aggregate('dialect');
+  const maxVal=data[0]?data[0][1]:1;
+  let html=`<div class="card" style="margin-bottom:12px"><p class="slbl">Dialect groups — ${ROWS.length.toLocaleString()} transcripts</p>`;
+  data.forEach((d,i)=>{html+=hbar(d[0],d[1],maxVal,PALETTE[i%PALETTE.length]);});
+  html+=`</div>`;
+
+  // Avg confidence per dialect
+  const dConf={};const dCount={};
+  ROWS.forEach(r=>{dConf[r.dialect]=(dConf[r.dialect]||0)+r.conf;dCount[r.dialect]=(dCount[r.dialect]||0)+1;});
+
+  html+=`<div class="card"><p class="slbl">Avg. confidence by dialect</p>`;
+  data.forEach((d,i)=>{
+    var avg=dConf[d[0]]/dCount[d[0]];
+    var col=avg>=0.7?'#9FE1CB':'#FAC775';
+    html+=`<div class="hbar-wrap">
+      <div class="hbar-label">${d[0]}</div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(avg*100)}%;background:${col}"></div></div>
+      <div class="hbar-val" style="color:${avg>=0.7?'#085041':'#A32D2D'}">${avg.toFixed(2)}</div>
+    </div>`;
+  });
+  html+=`</div>`;
+  document.getElementById('viz-area').innerHTML=html;
+}
+
+// --- L2 ---
+function renderL2(){
+  const data=aggregate('l2');
+  const maxVal=data[0]?data[0][1]:1;
+  const total=ROWS.length;
+  let html=`<div class="card" style="margin-bottom:12px"><p class="slbl">L2 disposition classes — ${data.length} unique</p>`;
+  data.forEach((d,i)=>{
+    var pct=(d[1]/total*100).toFixed(1);
+    html+=`<div class="hbar-wrap">
+      <div class="hbar-label">${d[0]}</div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(d[1]/maxVal*100)}%;background:${PALETTE[i%PALETTE.length]}"></div></div>
+      <div class="hbar-val">${pct}%</div>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  // Donut if reasonable number of classes
+  if(data.length<=10){
+    const donutSvg=buildDonut(data.map((d,i)=>({label:d[0],val:d[1],color:PALETTE[i%PALETTE.length]})),80);
+    html+=`<div class="card"><p class="slbl">L2 share</p><div style="display:flex;gap:16px;align-items:center">
+      <div class="donut-wrap" style="width:130px;height:130px;flex-shrink:0">${donutSvg}</div>
+      <div>`;
+    data.forEach((d,i)=>{html+=`<div class="legend-row"><span class="legend-sq" style="background:${PALETTE[i%PALETTE.length]}"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">${d[0]}</span><span style="margin-left:8px;font-size:11px;color:#aaa">${(d[1]/total*100).toFixed(1)}%</span></div>`;});
+    html+=`</div></div></div>`;
+  }
+
+  document.getElementById('viz-area').innerHTML=html;
+}
+
+// --- CONFIDENCE ---
+function renderConfidence(){
+  const total=ROWS.length;
+  const confs=ROWS.map(r=>r.conf);
+  const avg=confs.reduce((s,c)=>s+c,0)/total;
+  const bins=Array(10).fill(0);
+  confs.forEach(c=>{var bi=Math.min(Math.floor((c-0.5)/0.05),9);if(bi>=0&&bi<10)bins[bi]++;});
+  const maxBin=Math.max(...bins);
+
+  // Color bins: red for <0.7, green for >=0.7
+  const binColors=bins.map((_,i)=>(0.5+i*0.05)>=0.7?'#9FE1CB':'#FAC775');
+  const binLabels=['0.50','0.55','0.60','0.65','0.70','0.75','0.80','0.85','0.90','0.95'];
+
+  let histBars='';
+  bins.forEach((b,i)=>{
+    var h=maxBin>0?Math.max(4,Math.round(b/maxBin*76)):4;
+    histBars+=`<div class="hist-bar" style="height:${h}px;background:${binColors[i]};flex:1">
+      <span class="hist-tip">${binLabels[i]}–${(parseFloat(binLabels[i])+0.05).toFixed(2)}: ${b} calls</span>
+    </div>`;
+  });
+
+  // Percentile stats
+  const sorted=[...confs].sort((a,b)=>a-b);
+  const p25=sorted[Math.floor(total*0.25)];
+  const p50=sorted[Math.floor(total*0.5)];
+  const p75=sorted[Math.floor(total*0.75)];
+  const lowPct=Math.round(confs.filter(c=>c<0.7).length/total*100);
+
+  // L1 breakdown by confidence band
+  const contacted_high=ROWS.filter(r=>r.conf>=0.7&&r.l1==='Contacted').length;
+  const contacted_low=ROWS.filter(r=>r.conf<0.7&&r.l1==='Contacted').length;
+  const nc_high=ROWS.filter(r=>r.conf>=0.7&&r.l1!=='Contacted').length;
+  const nc_low=ROWS.filter(r=>r.conf<0.7&&r.l1!=='Contacted').length;
+
+  let html=`
+  <div class="viz-grid">
+    <div class="card">
+      <p class="slbl">Confidence distribution histogram</p>
+      <div style="display:flex;align-items:flex-end;gap:3px;height:84px;padding-bottom:0">${histBars}</div>
+      <div style="display:flex;gap:3px;font-size:10px;color:#aaa;margin-top:4px">
+        ${binLabels.map(l=>`<span style="flex:1;text-align:center">${l}</span>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <span class="stat-pill"><span class="pv">${avg.toFixed(3)}</span> avg</span>
+        <span class="stat-pill"><span class="pv">${p50.toFixed(3)}</span> p50</span>
+        <span class="stat-pill"><span class="pv">${p25.toFixed(3)}</span> p25</span>
+        <span class="stat-pill"><span class="pv">${p75.toFixed(3)}</span> p75</span>
+        <span class="stat-pill" style="background:#FEF3F2"><span class="pv" style="color:#A32D2D">${lowPct}%</span> flagged</span>
+      </div>
+    </div>
+    <div class="card">
+      <p class="slbl">L1 split by confidence band</p>
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;color:#888;margin-bottom:6px">High confidence (&ge; 0.70) — ${contacted_high+nc_high} calls</div>
+        <div style="display:flex;height:20px;border-radius:4px;overflow:hidden">
+          <div style="flex:${contacted_high};background:#B5D4F4;display:flex;align-items:center;justify-content:center;font-size:11px;color:#0C447C">${contacted_high>0?contacted_high:''}</div>
+          <div style="flex:${nc_high};background:#E8E6E0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#666">${nc_high>0?nc_high:''}</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:#888;margin-bottom:6px">Low confidence (&lt; 0.70) — ${contacted_low+nc_low} calls</div>
+        <div style="display:flex;height:20px;border-radius:4px;overflow:hidden">
+          <div style="flex:${contacted_low};background:#FAC775;display:flex;align-items:center;justify-content:center;font-size:11px;color:#633806">${contacted_low>0?contacted_low:''}</div>
+          <div style="flex:${nc_low};background:#F5F3ED;display:flex;align-items:center;justify-content:center;font-size:11px;color:#888">${nc_low>0?nc_low:''}</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #f0f0f0;display:flex;gap:10px;flex-wrap:wrap">
+        <div class="legend-row"><span class="legend-sq" style="background:#B5D4F4"></span>Contacted</div>
+        <div class="legend-row"><span class="legend-sq" style="background:#E8E6E0"></span>Not Contacted</div>
+      </div>
+    </div>
+  </div>`;
+
+  // Confidence CDF curve (SVG)
+  const cdfPoints=[];
+  for(var i=0;i<sorted.length;i++){cdfPoints.push({x:sorted[i],y:(i+1)/total});}
+  // Sample ~50 points for path
+  const step=Math.max(1,Math.floor(sorted.length/50));
+  let pathD='';
+  const w=460,h=100,padL=30,padT=8,padB=20,padR=10;
+  const xMin=0.5,xMax=1.0;
+  const toX=v=>padL+(v-xMin)/(xMax-xMin)*(w-padL-padR);
+  const toY=v=>padT+(1-v)*(h-padT-padB);
+  cdfPoints.filter((_,i)=>i%step===0||i===cdfPoints.length-1).forEach((p,i)=>{
+    pathD+=(i===0?'M':'L')+toX(p.x).toFixed(1)+' '+toY(p.y).toFixed(1)+' ';
+  });
+  // 0.7 threshold line
+  const tx=toX(0.7);
+
+  html+=`<div class="card">
+    <p class="slbl">Cumulative distribution (CDF)</p>
+    <svg viewBox="0 0 ${w} ${h}" style="width:100%;display:block;overflow:visible">
+      <!-- axes -->
+      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h-padB}" stroke="#e5e5e5" stroke-width="1"/>
+      <line x1="${padL}" y1="${h-padB}" x2="${w-padR}" y2="${h-padB}" stroke="#e5e5e5" stroke-width="1"/>
+      <!-- threshold line -->
+      <line x1="${tx.toFixed(1)}" y1="${padT}" x2="${tx.toFixed(1)}" y2="${h-padB}" stroke="#EF9F27" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="${(tx+3).toFixed(1)}" y="${padT+10}" fill="#EF9F27" font-size="9">0.70</text>
+      <!-- path -->
+      <path d="${pathD}" fill="none" stroke="#85B7EB" stroke-width="1.5"/>
+      <!-- y axis labels -->
+      <text x="${padL-3}" y="${toY(0)+4}" fill="#aaa" font-size="9" text-anchor="end">0%</text>
+      <text x="${padL-3}" y="${toY(0.5)+4}" fill="#aaa" font-size="9" text-anchor="end">50%</text>
+      <text x="${padL-3}" y="${toY(1)+4}" fill="#aaa" font-size="9" text-anchor="end">100%</text>
+      <!-- x axis labels -->
+      <text x="${toX(0.5)}" y="${h-padB+12}" fill="#aaa" font-size="9" text-anchor="middle">0.50</text>
+      <text x="${toX(0.75)}" y="${h-padB+12}" fill="#aaa" font-size="9" text-anchor="middle">0.75</text>
+      <text x="${toX(1.0)}" y="${h-padB+12}" fill="#aaa" font-size="9" text-anchor="middle">1.00</text>
+    </svg>
+  </div>`;
+
+  document.getElementById('viz-area').innerHTML=html;
+}
+
+// --- CALL STAGE ---
+function renderCallStage(){
+  const data=aggregate('call_stage');
+  if(!data.length){document.getElementById('viz-area').innerHTML='<div class="card" style="padding:2rem;text-align:center;color:#aaa">No call_stage data available</div>';return;}
+  const total=ROWS.length;
+  const maxVal=data[0][1];
+
+  // Contact rate per stage
+  const stageContacted={};const stageTotal={};
+  ROWS.forEach(r=>{
+    var s=r.call_stage||'Unknown';
+    stageTotal[s]=(stageTotal[s]||0)+1;
+    if(r.l1==='Contacted')stageContacted[s]=(stageContacted[s]||0)+1;
+  });
+
+  // Avg confidence per stage
+  const stageConf={};const stageCount={};
+  ROWS.forEach(r=>{var s=r.call_stage||'Unknown';stageConf[s]=(stageConf[s]||0)+r.conf;stageCount[s]=(stageCount[s]||0)+1;});
+
+  let html=`<div class="viz-grid">
+    <div class="card">
+      <p class="slbl">Volume by call stage</p>`;
+  data.forEach((d,i)=>{html+=hbar(d[0],d[1],maxVal,PALETTE[(i+6)%PALETTE.length]);});
+  html+=`</div>
+    <div class="card">
+      <p class="slbl">Contact rate by call stage</p>`;
+  data.forEach((d,i)=>{
+    var rate=stageContacted[d[0]]?Math.round((stageContacted[d[0]]/stageTotal[d[0]])*100):0;
+    html+=`<div class="hbar-wrap">
+      <div class="hbar-label">${d[0]}</div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${rate}%;background:#85B7EB"></div></div>
+      <div class="hbar-val">${rate}%</div>
+    </div>`;
+  });
+  html+=`</div></div>`;
+
+  // Stage × confidence table
+  html+=`<div class="card"><p class="slbl">Avg. confidence by call stage</p>`;
+  data.forEach((d,i)=>{
+    var avg=stageConf[d[0]]/stageCount[d[0]];
+    var col=avg>=0.7?'#9FE1CB':'#FAC775';
+    html+=`<div class="hbar-wrap">
+      <div class="hbar-label">${d[0]}</div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${Math.round(avg*100)}%;background:${col}"></div></div>
+      <div class="hbar-val" style="color:${avg>=0.7?'#085041':'#A32D2D'}">${avg.toFixed(2)}</div>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  document.getElementById('viz-area').innerHTML=html;
+}
+
+// --- HEATMAP: Language × L1 ---
+function renderHeatmap(){
+  const langs=[...new Set(ROWS.map(r=>r.lang))];
+  const l1s=['Contacted','Not Contacted'];
+
+  // Build matrix
+  const matrix={};
+  langs.forEach(l=>{matrix[l]={};l1s.forEach(l1=>{matrix[l][l1]=0;});});
+  ROWS.forEach(r=>{if(matrix[r.lang])matrix[r.lang][r.l1]=(matrix[r.lang][r.l1]||0)+1;});
+
+  // Find max for color scaling
+  let maxVal=0;
+  langs.forEach(l=>l1s.forEach(l1=>{if(matrix[l][l1]>maxVal)maxVal=matrix[l][l1];}));
+
+  const cellW=120, cellH=40, labelW=130, headerH=32, padBot=8;
+  const svgW=labelW+l1s.length*cellW+20;
+  const svgH=headerH+langs.length*cellH+padBot;
+
+  let cells='';
+  // Headers
+  l1s.forEach((l1,j)=>{
+    cells+=`<text x="${labelW+j*cellW+cellW/2}" y="${headerH-8}" text-anchor="middle" font-size="11" fill="#666" font-weight="600">${l1}</text>`;
+  });
+  // Rows
+  langs.forEach((lang,i)=>{
+    cells+=`<text x="${labelW-8}" y="${headerH+i*cellH+cellH/2+4}" text-anchor="end" font-size="11" fill="#555">${lang}</text>`;
+    l1s.forEach((l1,j)=>{
+      var v=matrix[lang][l1]||0;
+      var intensity=maxVal>0?v/maxVal:0;
+      var bg=l1==='Contacted'?interpolateColor('#EBF4FF','#1E6BB8',intensity):interpolateColor('#F5F3EE','#888',intensity);
+      var tc=intensity>0.5?'#fff':'#333';
+      cells+=`<rect x="${labelW+j*cellW+2}" y="${headerH+i*cellH+2}" width="${cellW-4}" height="${cellH-4}" rx="5" fill="${bg}"/>`;
+      cells+=`<text x="${labelW+j*cellW+cellW/2}" y="${headerH+i*cellH+cellH/2+4}" text-anchor="middle" font-size="12" fill="${tc}" font-weight="600">${v}</text>`;
+      if(v>0&&maxVal>0){cells+=`<text x="${labelW+j*cellW+cellW/2}" y="${headerH+i*cellH+cellH/2+16}" text-anchor="middle" font-size="9" fill="${tc}" opacity="0.8">${(v/ROWS.length*100).toFixed(1)}%</text>`;}
+    });
+  });
+
+  // Also do Dialect × Confidence heatmap
+  const dialects=[...new Set(ROWS.map(r=>r.dialect))];
+  const confBands=['0.50–0.65','0.65–0.75','0.75–0.85','0.85–1.00'];
+  const getConfBand=c=>c<0.65?'0.50–0.65':c<0.75?'0.65–0.75':c<0.85?'0.75–0.85':'0.85–1.00';
+  const dMatrix={};
+  dialects.forEach(d=>{dMatrix[d]={};confBands.forEach(b=>{dMatrix[d][b]=0;});});
+  ROWS.forEach(r=>{if(dMatrix[r.dialect])dMatrix[r.dialect][getConfBand(r.conf)]++;});
+
+  let dMaxVal=0;
+  dialects.forEach(d=>confBands.forEach(b=>{if(dMatrix[d][b]>dMaxVal)dMaxVal=dMatrix[d][b];}));
+
+  const dCellW=90,dLabelW=150,dSvgW=dLabelW+confBands.length*dCellW+20;
+  const dSvgH=headerH+dialects.length*cellH+padBot;
+  let dCells='';
+  confBands.forEach((b,j)=>{dCells+=`<text x="${dLabelW+j*dCellW+dCellW/2}" y="${headerH-8}" text-anchor="middle" font-size="10" fill="#666" font-weight="600">${b}</text>`;});
+  dialects.forEach((d,i)=>{
+    dCells+=`<text x="${dLabelW-8}" y="${headerH+i*cellH+cellH/2+4}" text-anchor="end" font-size="10" fill="#555">${d}</text>`;
+    confBands.forEach((b,j)=>{
+      var v=dMatrix[d][b]||0;
+      var intensity=dMaxVal>0?v/dMaxVal:0;
+      var bg=interpolateColor('#F0FAF6','#1D9E75',intensity);
+      var tc=intensity>0.55?'#fff':'#333';
+      dCells+=`<rect x="${dLabelW+j*dCellW+2}" y="${headerH+i*cellH+2}" width="${dCellW-4}" height="${cellH-4}" rx="5" fill="${bg}"/>`;
+      dCells+=`<text x="${dLabelW+j*dCellW+dCellW/2}" y="${headerH+i*cellH+cellH/2+4}" text-anchor="middle" font-size="12" fill="${tc}" font-weight="${v>0?'600':'400'}">${v||'—'}</text>`;
+    });
+  });
+
+  let html=`
+  <div class="card" style="margin-bottom:12px">
+    <p class="slbl">Language × L1 contact heatmap</p>
+    <div style="overflow-x:auto">
+      <svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;max-width:${svgW}px;display:block">${cells}</svg>
+    </div>
+  </div>
+  <div class="card">
+    <p class="slbl">Dialect × confidence band heatmap</p>
+    <div style="overflow-x:auto">
+      <svg viewBox="0 0 ${dSvgW} ${dSvgH}" style="width:100%;max-width:${dSvgW}px;display:block">${dCells}</svg>
+    </div>
+  </div>`;
+  document.getElementById('viz-area').innerHTML=html;
+}
+
+// ---- Donut SVG builder ----
+function buildDonut(segments, r){
+  const total=segments.reduce((s,d)=>s+d.val,0);
+  if(total===0)return `<svg viewBox="0 0 ${r*2} ${r*2}"><circle cx="${r}" cy="${r}" r="${r*0.7}" fill="none" stroke="#f0f0f0" stroke-width="${r*0.28}"/></svg>`;
+  const cx=r,cy=r,outerR=r*0.85,innerR=r*0.55,sw=outerR-innerR;
+  let paths='';let angle=-Math.PI/2;
+  segments.forEach(seg=>{
+    var sweep=seg.val/total*2*Math.PI;
+    var x1=cx+outerR*Math.cos(angle),y1=cy+outerR*Math.sin(angle);
+    var x2=cx+outerR*Math.cos(angle+sweep),y2=cy+outerR*Math.sin(angle+sweep);
+    var large=sweep>Math.PI?1:0;
+    if(sweep>0.01){
+      paths+=`<path d="M${x1.toFixed(2)} ${y1.toFixed(2)} A${outerR} ${outerR} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}" fill="none" stroke="${seg.color}" stroke-width="${sw}" stroke-linecap="butt"/>`;
+    }
+    angle+=sweep;
+  });
+  return `<svg viewBox="0 0 ${r*2} ${r*2}">${paths}</svg>`;
+}
+
+// ---- Color interpolation ----
+function interpolateColor(c1,c2,t){
+  function hexToRgb(h){var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return[r,g,b];}
+  function rgbToHex(r,g,b){return '#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');}
+  var [r1,g1,b1]=hexToRgb(c1);var [r2,g2,b2]=hexToRgb(c2);
+  return rgbToHex(r1+(r2-r1)*t,g1+(g2-g1)*t,b1+(b2-b1)*t);
+}
+
+// ---- Old renderChart for legacy compatibility ----
+function renderChart(){ renderViz(); }
+
+function setBatch(n){document.getElementById('bFilter').value=n;}
+function go(n){
+  document.querySelectorAll('.sc').forEach((s,i)=>s.classList.toggle('active',i===n));
+  var navMap=[0,1,2,4];
+  document.querySelectorAll('.snav button').forEach((b,i)=>b.classList.toggle('active',navMap[i]===n));
+  if(n===2)filterRes();
+  if(n===4)renderViz();
+}
+</script>
+</body></html>
